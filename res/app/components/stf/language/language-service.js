@@ -31,6 +31,10 @@ module.exports =
     LanguageService.detectedLanguage =
       onlySupported(detectLanguage(), LanguageService.defaultLanguage)
 
+    function updateLanguage() {
+      gettextCatalog.setCurrentLanguage(LanguageService.selectedLanguage)
+    }
+
     SettingsService.sync(
       LanguageService, {
         target: LanguageService.settingKey,
@@ -38,10 +42,6 @@ module.exports =
         defaultValue: LanguageService.detectedLanguage
       }, updateLanguage
     )
-
-    function updateLanguage() {
-      gettextCatalog.setCurrentLanguage(LanguageService.selectedLanguage)
-    }
 
     LanguageService.updateLanguage = updateLanguage
 

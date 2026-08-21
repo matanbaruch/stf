@@ -2,18 +2,6 @@ module.exports = function LogsCtrl($scope, $rootScope, $routeParams, LogcatServi
 
   var deviceSerial = $routeParams.serial
   var cleanDevice = (window.location.href).split('/').pop()
-  cleanDeviceSettings()
-
-  $scope.started = checkLogBtnStatus() === null ? false : checkLogBtnStatus()
-  $scope.filters = {}
-
-  $scope.filters.levelNumbers = LogcatService.filters.levelNumbers
-
-  LogcatService.filters.filterLines()
-
-  restoreFilters()
-  setFiltersPriority()
-
   function cleanDeviceSettings() {
     if (Object.keys($rootScope).includes('LogcatService')) {
       LogcatService.deviceEntries = $rootScope.LogcatService.deviceEntries
@@ -64,6 +52,18 @@ module.exports = function LogsCtrl($scope, $rootScope, $routeParams, LogcatServi
     }
     return null
   }
+
+  cleanDeviceSettings()
+
+  $scope.started = checkLogBtnStatus() === null ? false : checkLogBtnStatus()
+  $scope.filters = {}
+
+  $scope.filters.levelNumbers = LogcatService.filters.levelNumbers
+
+  LogcatService.filters.filterLines()
+
+  restoreFilters()
+  setFiltersPriority()
 
   $scope.$watch('started', function(newValue, oldValue) {
     if (!Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {

@@ -54,23 +54,6 @@ module.exports = function EnhanceDeviceServiceFactory($filter, AppState) {
     device.enhancedStatePassive = $filter('statusNamePassive')(device.state)
   }
 
-  function enhanceDeviceDetails(device) {
-    if (device.battery) {
-      device.enhancedBatteryPercentage = (device.battery.level / device.battery.scale * 100) + '%'
-      device.enhancedBatteryHealth = $filter('batteryHealth')(device.battery.health)
-      device.enhancedBatterySource = $filter('batterySource')(device.battery.source)
-      device.enhancedBatteryStatus = $filter('batteryStatus')(device.battery.status)
-      device.enhancedBatteryTemp = device.battery.temp + '°C'
-    }
-
-    if (device.owner) {
-      device.enhancedUserProfileUrl = enhanceUserProfileUrl(device.owner.email)
-      device.enhancedUserName = device.owner.name || 'No name'
-    }
-
-    device.enhancedGroupOwnerProfileUrl = enhanceUserProfileUrl(device.group.owner.email)
-  }
-
   function enhanceUserProfileUrl(email) {
     var url
     var userProfileUrl = (function() {
@@ -95,6 +78,23 @@ module.exports = function EnhanceDeviceServiceFactory($filter, AppState) {
       url = '/!#/user/' + email
     }
     return url
+  }
+
+  function enhanceDeviceDetails(device) {
+    if (device.battery) {
+      device.enhancedBatteryPercentage = (device.battery.level / device.battery.scale * 100) + '%'
+      device.enhancedBatteryHealth = $filter('batteryHealth')(device.battery.health)
+      device.enhancedBatterySource = $filter('batterySource')(device.battery.source)
+      device.enhancedBatteryStatus = $filter('batteryStatus')(device.battery.status)
+      device.enhancedBatteryTemp = device.battery.temp + '°C'
+    }
+
+    if (device.owner) {
+      device.enhancedUserProfileUrl = enhanceUserProfileUrl(device.owner.email)
+      device.enhancedUserName = device.owner.name || 'No name'
+    }
+
+    device.enhancedGroupOwnerProfileUrl = enhanceUserProfileUrl(device.group.owner.email)
   }
 
   function enhanceDeviceAppState(device) {

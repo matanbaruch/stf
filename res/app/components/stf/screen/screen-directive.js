@@ -49,6 +49,8 @@ module.exports = function DeviceScreenDirective(
        * This section should deal with updating the screen ONLY.
        */
       ;(function() {
+        var ws, adjustedBoundSize
+
         function stop() {
           try {
             ws.onerror = ws.onclose = ws.onmessage = ws.onopen = null
@@ -58,7 +60,7 @@ module.exports = function DeviceScreenDirective(
           catch (err) { /* noop */ }
         }
 
-        var ws = new WebSocket(device.display.url)
+        ws = new WebSocket(device.display.url)
         ws.binaryType = 'blob'
 
         ws.onerror = function errorListener() {
@@ -95,7 +97,6 @@ module.exports = function DeviceScreenDirective(
         , minscale: 0.36
         }
 
-        var adjustedBoundSize
         var cachedEnabled = false
 
         function updateBounds() {
@@ -203,6 +204,8 @@ module.exports = function DeviceScreenDirective(
           }
         }
 
+        var canvasAspect = 1
+
         ws.onmessage = (function() {
           var cachedScreen = {
             rotation: 0
@@ -300,6 +303,7 @@ module.exports = function DeviceScreenDirective(
                 })
 
                 var img = imagePool.next()
+                var url
 
                 img.onload = function() {
                   updateImageArea(this)
@@ -335,7 +339,7 @@ module.exports = function DeviceScreenDirective(
                   url = null
                 }
 
-                var url = URL.createObjectURL(blob)
+                url = URL.createObjectURL(blob)
                 img.src = url
               }
             }
@@ -370,7 +374,6 @@ module.exports = function DeviceScreenDirective(
           control.rotate(90)
         })
 
-        var canvasAspect = 1
         var parentAspect = 1
 
         function resizeListener() {

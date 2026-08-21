@@ -69,6 +69,22 @@ module.exports = function GroupsCtrl(
     })
   }
 
+  function addStandardizableDevice(device, timeStamp) {
+    return CommonService.add(
+      standardizableDevices, standardizableDevicesBySerial, device, 'serial', timeStamp)
+  }
+
+  function updateStandardizableDevice(device, timeStamp) {
+    return CommonService.update(
+      standardizableDevices, standardizableDevicesBySerial, device, 'serial', timeStamp)
+  }
+
+  function addAvailableGroupDevice(id, device, timeStamp) {
+    return CommonService.add(
+      $scope.groupsEnv[id].availableDevices
+    , $scope.groupsEnv[id].availableDevicesBySerial, device, 'serial', timeStamp)
+  }
+
   function getAvailableGroupDevices(group) {
     if (group.class === 'bookable') {
       initAvailableGroupDevices(group, originDevices, originDevicesBySerial)
@@ -188,25 +204,9 @@ module.exports = function GroupsCtrl(
     return CommonService.delete(originDevices, originDevicesBySerial, serial, timeStamp)
   }
 
-  function addStandardizableDevice(device, timeStamp) {
-    return CommonService.add(
-      standardizableDevices, standardizableDevicesBySerial, device, 'serial', timeStamp)
-  }
-
-  function updateStandardizableDevice(device, timeStamp) {
-    return CommonService.update(
-      standardizableDevices, standardizableDevicesBySerial, device, 'serial', timeStamp)
-  }
-
   function deleteStandardizableDevice(serial, timeStamp) {
     return CommonService.delete(
       standardizableDevices, standardizableDevicesBySerial, serial, timeStamp)
-  }
-
-  function addAvailableGroupDevice(id, device, timeStamp) {
-    return CommonService.add(
-      $scope.groupsEnv[id].availableDevices
-    , $scope.groupsEnv[id].availableDevicesBySerial, device, 'serial', timeStamp)
   }
 
   function updateAvailableGroupDevice(id, device, timeStamp, noAdding) {

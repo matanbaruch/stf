@@ -110,31 +110,6 @@ module.exports = function DeviceServiceFactory($http, socket, EnhanceDeviceServi
       }
     }.bind(this)
 
-    function fetch(data) {
-      deviceService.load(data.serial)
-        .then(function(device) {
-          return changeListener({
-            important: true
-          , data: device
-          })
-        })
-        .catch(function() {})
-    }
-
-    function addListener(event) {
-      var device = get(event.data)
-      if (device) {
-        modify(device, event.data)
-        notify(event)
-      }
-      else {
-        if (options.filter(event.data)) {
-          insert(event.data)
-          notify(event)
-        }
-      }
-    }
-
     function changeListener(event) {
       var device = get(event.data)
       if (device) {
@@ -159,6 +134,31 @@ module.exports = function DeviceServiceFactory($http, socket, EnhanceDeviceServi
         }
       }
       **/
+    }
+
+    function fetch(data) {
+      deviceService.load(data.serial)
+        .then(function(device) {
+          return changeListener({
+            important: true
+          , data: device
+          })
+        })
+        .catch(function() {})
+    }
+
+    function addListener(event) {
+      var device = get(event.data)
+      if (device) {
+        modify(device, event.data)
+        notify(event)
+      }
+      else {
+        if (options.filter(event.data)) {
+          insert(event.data)
+          notify(event)
+        }
+      }
     }
 
     scopedSocket.on('device.add', addListener)

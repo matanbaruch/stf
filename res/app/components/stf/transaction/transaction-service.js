@@ -8,6 +8,80 @@ module.exports = function TransactionServiceFactory(socket, TransactionError) {
     return 'tx.' + uuid.v4()
   }
 
+  function PendingTransactionResult(result) {
+    var resolver = Promise.defer()
+    var seq = 0
+    var last = Infinity
+    var unplaced = []
+
+    function readQueue() {
+      var message
+      var foundAny = false
+
+      while (seq <= last && (message = unplaced[seq])) {
+        unplaced[seq] = null
+
+        if (seq === last) {
+          result.success = message.success
+
+          if (message.body) {
+            result.body = JSON.parse(message.body)
+          }
+
+          if (result.success) {
+            if (message.data) {
+              result.lastData = result.data[seq] = message.data
+            }
+            resolver.resolve(result)
+          }
+          else {
+            result.lastData = result.error = message.data
+            resolver.reject(new TransactionError(result))
+          }
+
+          return
+        }
+        else {
+          if (message.progress) {
+            result.progress = message.progress
+          }
+        }
+
+        foundAny = true
+        result.lastData = result.data[seq++] = message.data
+      }
+
+      if (foundAny) {
+        resolver.progress(result)
+      }
+    }
+
+    this.progress = function(message) {
+      unplaced[message.seq] = message
+      readQueue()
+    }
+
+    this.done = function(message) {
+      last = message.seq
+      unplaced[message.seq] = message
+      readQueue()
+    }
+
+    this.cancel = function(message) {
+      if (!result.settled) {
+        last = message.seq = seq
+        unplaced[message.seq] = message
+        readQueue()
+      }
+    }
+
+    this.result = result
+    this.promise = resolver.promise.finally(function() {
+      result.settled = true
+      result.progress = 100
+    })
+  }
+
   function MultiTargetTransaction(targets, options) {
     var pending = Object.create(null)
     var results = []
@@ -103,80 +177,6 @@ module.exports = function TransactionServiceFactory(socket, TransactionError) {
       .then(function() {
         return result
       })
-  }
-
-  function PendingTransactionResult(result) {
-    var resolver = Promise.defer()
-    var seq = 0
-    var last = Infinity
-    var unplaced = []
-
-    function readQueue() {
-      var message
-      var foundAny = false
-
-      while (seq <= last && (message = unplaced[seq])) {
-        unplaced[seq] = null
-
-        if (seq === last) {
-          result.success = message.success
-
-          if (message.body) {
-            result.body = JSON.parse(message.body)
-          }
-
-          if (result.success) {
-            if (message.data) {
-              result.lastData = result.data[seq] = message.data
-            }
-            resolver.resolve(result)
-          }
-          else {
-            result.lastData = result.error = message.data
-            resolver.reject(new TransactionError(result))
-          }
-
-          return
-        }
-        else {
-          if (message.progress) {
-            result.progress = message.progress
-          }
-        }
-
-        foundAny = true
-        result.lastData = result.data[seq++] = message.data
-      }
-
-      if (foundAny) {
-        resolver.progress(result)
-      }
-    }
-
-    this.progress = function(message) {
-      unplaced[message.seq] = message
-      readQueue()
-    }
-
-    this.done = function(message) {
-      last = message.seq
-      unplaced[message.seq] = message
-      readQueue()
-    }
-
-    this.cancel = function(message) {
-      if (!result.settled) {
-        last = message.seq = seq
-        unplaced[message.seq] = message
-        readQueue()
-      }
-    }
-
-    this.result = result
-    this.promise = resolver.promise.finally(function() {
-      result.settled = true
-      result.progress = 100
-    })
   }
 
   function TransactionResult(source) {

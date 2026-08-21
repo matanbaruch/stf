@@ -20,17 +20,6 @@ module.exports = function angularPackeryDirective(PackeryService,
       }, parsedAttrs)
 
       var pckry = new PackeryService(container, options)
-      pckry.on('layoutComplete', onLayoutComplete)
-      pckry.bindResize()
-      bindDraggable()
-
-      $timeout(function() {
-        pckry.layout()
-      }, 0)
-      $timeout(function() {
-        pckry.layout()
-      }, 100)
-
       function bindDraggable() {
         if (options.draggable) {
           var draggableOptions = {}
@@ -49,6 +38,17 @@ module.exports = function angularPackeryDirective(PackeryService,
       function onLayoutComplete() {
         return true
       }
+
+      pckry.on('layoutComplete', onLayoutComplete)
+      pckry.bindResize()
+      bindDraggable()
+
+      $timeout(function() {
+        pckry.layout()
+      }, 0)
+      $timeout(function() {
+        pckry.layout()
+      }, 100)
 
       function onPanelsResized() {
         pckry.layout()

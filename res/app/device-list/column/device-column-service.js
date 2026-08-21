@@ -22,340 +22,6 @@ var filterOps = {
   }
 }
 
-module.exports = function DeviceColumnService($filter, gettext, SettingsService, AppState) {
-  // Definitions for all possible values.
-  return {
-    state: DeviceStatusCell({
-      title: gettext('Status')
-    , value: function(device) {
-        return $filter('translate')(device.enhancedStateAction)
-      }
-    })
-  , group: TextCell({
-      title: gettext('Group Name')
-    , value: function(device) {
-        return $filter('translate')(device.group.name)
-      }
-    })
-  , groupSchedule: TextCell({
-      title: gettext('Group Class')
-    , value: function(device) {
-        return $filter('translate')(device.group.class)
-      }
-    })
-  , groupOwner: LinkCell({
-      title: gettext('Group Owner')
-    , target: '_blank'
-    , value: function(device) {
-        return $filter('translate')(device.group.owner.name)
-      }
-    , link: function(device) {
-        return device.enhancedGroupOwnerProfileUrl
-      }
-    })
-  , groupEndTime: TextCell({
-      title: gettext('Group Expiration Date')
-    , value: function(device) {
-        return $filter('date')(device.group.lifeTime.stop, SettingsService.get('dateFormat'))
-      }
-    })
-  , groupStartTime: TextCell({
-      title: gettext('Group Starting Date')
-    , value: function(device) {
-        return $filter('date')(device.group.lifeTime.start, SettingsService.get('dateFormat'))
-      }
-    })
-  , groupRepetitions: TextCell({
-      title: gettext('Group Repetitions')
-    , value: function(device) {
-        return device.group.repetitions
-      }
-    })
-  , groupOrigin: TextCell({
-      title: gettext('Group Origin')
-    , value: function(device) {
-        return $filter('translate')(device.group.originName)
-      }
-    })
-  , model: DeviceModelCell({
-      title: gettext('Model')
-    , value: function(device) {
-        return device.model || device.serial
-      }
-    })
-  , name: DeviceNameCell({
-      title: gettext('Product')
-    , value: function(device) {
-        return device.name || device.model || device.serial
-      }
-    }, AppState.user.email)
-  , operator: TextCell({
-      title: gettext('Carrier')
-    , value: function(device) {
-        return device.operator || ''
-      }
-    })
-  , releasedAt: DateCell({
-      title: gettext('Released')
-    , value: function(device) {
-        return device.releasedAt ? new Date(device.releasedAt) : null
-      }
-    })
-  , version: TextCell({
-      title: gettext('OS')
-    , value: function(device) {
-        return device.version || ''
-      }
-    , compare: function(deviceA, deviceB) {
-        var va = (deviceA.version || '0').split('.')
-        var vb = (deviceB.version || '0').split('.')
-        var la = va.length
-        var lb = vb.length
-
-        for (var i = 0, l = Math.max(la, lb); i < l; ++i) {
-          var a = i < la ? parseInt(va[i], 10) : 0
-          var b = i < lb ? parseInt(vb[i], 10) : 0
-          var diff = a - b
-
-          // One of the values might be something like 'M'. If so, do a string
-          // comparison instead.
-          if (isNaN(diff)) {
-            diff = compareRespectCase(va[i], vb[i])
-          }
-
-          if (diff !== 0) {
-            return diff
-          }
-        }
-
-        return 0
-      }
-    , filter: function(device, filter) {
-        var va = (device.version || '0').split('.')
-        var vb = (filter.query || '0').split('.')
-        var la = va.length
-        var lb = vb.length
-        var op = filterOps[filter.op || '=']
-
-        // We have a single value and no operator or field. It matches
-        // too easily, let's wait for a dot (e.g. '5.'). An example of a
-        // bad match would be an unquoted query for 'Nexus 5', which targets
-        // a very specific device but may easily match every Nexus device
-        // as the two terms are handled separately.
-        if (filter.op === null && filter.field === null && lb === 1) {
-          return false
-        }
-
-        if (vb[lb - 1] === '') {
-          // This means that the query is not complete yet, and we're
-          // looking at something like "4.", which means that the last part
-          // should be ignored.
-          vb.pop()
-          lb -= 1
-        }
-
-        for (var i = 0, l = Math.min(la, lb); i < l; ++i) {
-          var a = parseInt(va[i], 10)
-          var b = parseInt(vb[i], 10)
-
-          // One of the values might be non-numeric, e.g. 'M'. In that case
-          // filter by string value instead.
-          if (isNaN(a) || isNaN(b)) {
-            if (!op(va[i], vb[i])) {
-              return false
-            }
-          }
-          else {
-            if (!op(a, b)) {
-              return false
-            }
-          }
-        }
-
-        return true
-      }
-    })
-  , network: TextCell({
-      title: gettext('Network')
-    , value: function(device) {
-        if (!device.network) {
-          return ''
-        }
-
-        if (!device.network.connected) {
-          return ''
-        }
-
-        if (device.network.subtype) {
-          return (device.network.type + ' (' + device.network.subtype + ')').toUpperCase()
-        }
-
-        return (device.network.type || '').toUpperCase()
-      }
-    })
-  , display: TextCell({
-      title: gettext('Screen')
-    , defaultOrder: 'desc'
-    , value: function(device) {
-        return device.display && device.display.width
-          ? device.display.width + 'x' + device.display.height
-          : ''
-      }
-    , compare: function(deviceA, deviceB) {
-        var va = deviceA.display && deviceA.display.width
-          ? deviceA.display.width * deviceA.display.height
-          : 0
-        var vb = deviceB.display && deviceB.display.width
-          ? deviceB.display.width * deviceB.display.height
-          : 0
-        return va - vb
-      }
-    })
-  , browser: DeviceBrowserCell({
-      title: gettext('Browser')
-    , value: function(device) {
-        return device.browser || {apps: []}
-      }
-    })
-  , serial: TextCell({
-      title: gettext('Serial')
-    , value: function(device) {
-        return device.serial || ''
-      }
-    })
-  , manufacturer: TextCell({
-      title: gettext('Manufacturer')
-    , value: function(device) {
-        return device.manufacturer || ''
-      }
-    })
-  , marketName: TextCell({
-    title: gettext('Market name')
-    , value: function(device) {
-      return device.marketName || ''
-    }
-  })
-  , sdk: NumberCell({
-      title: gettext('SDK')
-    , defaultOrder: 'desc'
-    , value: function(device) {
-        return device.sdk
-      }
-    , format: function(value) {
-        return value || ''
-      }
-    })
-  , abi: TextCell({
-      title: gettext('ABI')
-    , value: function(device) {
-        return device.abi || ''
-      }
-    })
-  , cpuPlatform: TextCell({
-      title: gettext('CPU Platform')
-    , value: function(device) {
-        return device.cpuPlatform || ''
-      }
-    })
-  , openGLESVersion: TextCell({
-      title: gettext('OpenGL ES version')
-    , value: function(device) {
-        return device.openGLESVersion || ''
-      }
-    })
-  , phone: TextCell({
-      title: gettext('Phone')
-    , value: function(device) {
-        return device.phone ? device.phone.phoneNumber : ''
-      }
-    })
-  , imei: TextCell({
-      title: gettext('Phone IMEI')
-    , value: function(device) {
-        return device.phone ? device.phone.imei : ''
-      }
-    })
-  , imsi: TextCell({
-      title: gettext('Phone IMSI')
-    , value: function(device) {
-        return device.phone ? device.phone.imsi : ''
-      }
-    })
-  , iccid: TextCell({
-      title: gettext('Phone ICCID')
-    , value: function(device) {
-        return device.phone ? device.phone.iccid : ''
-      }
-    })
-  , batteryHealth: TextCell({
-      title: gettext('Battery Health')
-    , value: function(device) {
-        return device.battery
-          ? $filter('translate')(device.enhancedBatteryHealth)
-          : ''
-      }
-    })
-  , batterySource: TextCell({
-      title: gettext('Battery Source')
-    , value: function(device) {
-        return device.battery
-          ? $filter('translate')(device.enhancedBatterySource)
-          : ''
-      }
-    })
-  , batteryStatus: TextCell({
-      title: gettext('Battery Status')
-    , value: function(device) {
-        return device.battery
-          ? $filter('translate')(device.enhancedBatteryStatus)
-          : ''
-      }
-    })
-  , batteryLevel: NumberCell({
-      title: gettext('Battery Level')
-    , value: function(device) {
-        return device.battery
-          ? Math.floor(device.battery.level / device.battery.scale * 100)
-          : null
-      }
-    , format: function(value) {
-        return value === null ? '' : value + '%'
-      }
-    })
-  , batteryTemp: NumberCell({
-      title: gettext('Battery Temp')
-    , value: function(device) {
-        return device.battery ? device.battery.temp : null
-      }
-    , format: function(value) {
-        return value === null ? '' : value + '°C'
-      }
-    })
-  , provider: TextCell({
-      title: gettext('Location')
-    , value: function(device) {
-        return device.provider ? device.provider.name : ''
-      }
-    })
-  , notes: DeviceNoteCell({
-      title: gettext('Notes')
-    , value: function(device) {
-        return device.notes || ''
-      }
-    })
-  , owner: LinkCell({
-      title: gettext('User')
-    , target: '_blank'
-    , value: function(device) {
-        return device.owner ? device.owner.name : ''
-      }
-    , link: function(device) {
-        return device.owner ? device.enhancedUserProfileUrl : ''
-      }
-    })
-  }
-}
-
 function zeroPadTwoDigit(digit) {
   return digit < 10 ? '0' + digit : '' + digit
 }
@@ -750,4 +416,338 @@ function DeviceNoteCell(options) {
       return filterIgnoreCase(options.value(item), filter.query)
     }
   })
+}
+
+module.exports = function DeviceColumnService($filter, gettext, SettingsService, AppState) {
+  // Definitions for all possible values.
+  return {
+    state: DeviceStatusCell({
+      title: gettext('Status')
+    , value: function(device) {
+        return $filter('translate')(device.enhancedStateAction)
+      }
+    })
+  , group: TextCell({
+      title: gettext('Group Name')
+    , value: function(device) {
+        return $filter('translate')(device.group.name)
+      }
+    })
+  , groupSchedule: TextCell({
+      title: gettext('Group Class')
+    , value: function(device) {
+        return $filter('translate')(device.group.class)
+      }
+    })
+  , groupOwner: LinkCell({
+      title: gettext('Group Owner')
+    , target: '_blank'
+    , value: function(device) {
+        return $filter('translate')(device.group.owner.name)
+      }
+    , link: function(device) {
+        return device.enhancedGroupOwnerProfileUrl
+      }
+    })
+  , groupEndTime: TextCell({
+      title: gettext('Group Expiration Date')
+    , value: function(device) {
+        return $filter('date')(device.group.lifeTime.stop, SettingsService.get('dateFormat'))
+      }
+    })
+  , groupStartTime: TextCell({
+      title: gettext('Group Starting Date')
+    , value: function(device) {
+        return $filter('date')(device.group.lifeTime.start, SettingsService.get('dateFormat'))
+      }
+    })
+  , groupRepetitions: TextCell({
+      title: gettext('Group Repetitions')
+    , value: function(device) {
+        return device.group.repetitions
+      }
+    })
+  , groupOrigin: TextCell({
+      title: gettext('Group Origin')
+    , value: function(device) {
+        return $filter('translate')(device.group.originName)
+      }
+    })
+  , model: DeviceModelCell({
+      title: gettext('Model')
+    , value: function(device) {
+        return device.model || device.serial
+      }
+    })
+  , name: DeviceNameCell({
+      title: gettext('Product')
+    , value: function(device) {
+        return device.name || device.model || device.serial
+      }
+    }, AppState.user.email)
+  , operator: TextCell({
+      title: gettext('Carrier')
+    , value: function(device) {
+        return device.operator || ''
+      }
+    })
+  , releasedAt: DateCell({
+      title: gettext('Released')
+    , value: function(device) {
+        return device.releasedAt ? new Date(device.releasedAt) : null
+      }
+    })
+  , version: TextCell({
+      title: gettext('OS')
+    , value: function(device) {
+        return device.version || ''
+      }
+    , compare: function(deviceA, deviceB) {
+        var va = (deviceA.version || '0').split('.')
+        var vb = (deviceB.version || '0').split('.')
+        var la = va.length
+        var lb = vb.length
+
+        for (var i = 0, l = Math.max(la, lb); i < l; ++i) {
+          var a = i < la ? parseInt(va[i], 10) : 0
+          var b = i < lb ? parseInt(vb[i], 10) : 0
+          var diff = a - b
+
+          // One of the values might be something like 'M'. If so, do a string
+          // comparison instead.
+          if (isNaN(diff)) {
+            diff = compareRespectCase(va[i], vb[i])
+          }
+
+          if (diff !== 0) {
+            return diff
+          }
+        }
+
+        return 0
+      }
+    , filter: function(device, filter) {
+        var va = (device.version || '0').split('.')
+        var vb = (filter.query || '0').split('.')
+        var la = va.length
+        var lb = vb.length
+        var op = filterOps[filter.op || '=']
+
+        // We have a single value and no operator or field. It matches
+        // too easily, let's wait for a dot (e.g. '5.'). An example of a
+        // bad match would be an unquoted query for 'Nexus 5', which targets
+        // a very specific device but may easily match every Nexus device
+        // as the two terms are handled separately.
+        if (filter.op === null && filter.field === null && lb === 1) {
+          return false
+        }
+
+        if (vb[lb - 1] === '') {
+          // This means that the query is not complete yet, and we're
+          // looking at something like "4.", which means that the last part
+          // should be ignored.
+          vb.pop()
+          lb -= 1
+        }
+
+        for (var i = 0, l = Math.min(la, lb); i < l; ++i) {
+          var a = parseInt(va[i], 10)
+          var b = parseInt(vb[i], 10)
+
+          // One of the values might be non-numeric, e.g. 'M'. In that case
+          // filter by string value instead.
+          if (isNaN(a) || isNaN(b)) {
+            if (!op(va[i], vb[i])) {
+              return false
+            }
+          }
+          else {
+            if (!op(a, b)) {
+              return false
+            }
+          }
+        }
+
+        return true
+      }
+    })
+  , network: TextCell({
+      title: gettext('Network')
+    , value: function(device) {
+        if (!device.network) {
+          return ''
+        }
+
+        if (!device.network.connected) {
+          return ''
+        }
+
+        if (device.network.subtype) {
+          return (device.network.type + ' (' + device.network.subtype + ')').toUpperCase()
+        }
+
+        return (device.network.type || '').toUpperCase()
+      }
+    })
+  , display: TextCell({
+      title: gettext('Screen')
+    , defaultOrder: 'desc'
+    , value: function(device) {
+        return device.display && device.display.width
+          ? device.display.width + 'x' + device.display.height
+          : ''
+      }
+    , compare: function(deviceA, deviceB) {
+        var va = deviceA.display && deviceA.display.width
+          ? deviceA.display.width * deviceA.display.height
+          : 0
+        var vb = deviceB.display && deviceB.display.width
+          ? deviceB.display.width * deviceB.display.height
+          : 0
+        return va - vb
+      }
+    })
+  , browser: DeviceBrowserCell({
+      title: gettext('Browser')
+    , value: function(device) {
+        return device.browser || {apps: []}
+      }
+    })
+  , serial: TextCell({
+      title: gettext('Serial')
+    , value: function(device) {
+        return device.serial || ''
+      }
+    })
+  , manufacturer: TextCell({
+      title: gettext('Manufacturer')
+    , value: function(device) {
+        return device.manufacturer || ''
+      }
+    })
+  , marketName: TextCell({
+    title: gettext('Market name')
+    , value: function(device) {
+      return device.marketName || ''
+    }
+  })
+  , sdk: NumberCell({
+      title: gettext('SDK')
+    , defaultOrder: 'desc'
+    , value: function(device) {
+        return device.sdk
+      }
+    , format: function(value) {
+        return value || ''
+      }
+    })
+  , abi: TextCell({
+      title: gettext('ABI')
+    , value: function(device) {
+        return device.abi || ''
+      }
+    })
+  , cpuPlatform: TextCell({
+      title: gettext('CPU Platform')
+    , value: function(device) {
+        return device.cpuPlatform || ''
+      }
+    })
+  , openGLESVersion: TextCell({
+      title: gettext('OpenGL ES version')
+    , value: function(device) {
+        return device.openGLESVersion || ''
+      }
+    })
+  , phone: TextCell({
+      title: gettext('Phone')
+    , value: function(device) {
+        return device.phone ? device.phone.phoneNumber : ''
+      }
+    })
+  , imei: TextCell({
+      title: gettext('Phone IMEI')
+    , value: function(device) {
+        return device.phone ? device.phone.imei : ''
+      }
+    })
+  , imsi: TextCell({
+      title: gettext('Phone IMSI')
+    , value: function(device) {
+        return device.phone ? device.phone.imsi : ''
+      }
+    })
+  , iccid: TextCell({
+      title: gettext('Phone ICCID')
+    , value: function(device) {
+        return device.phone ? device.phone.iccid : ''
+      }
+    })
+  , batteryHealth: TextCell({
+      title: gettext('Battery Health')
+    , value: function(device) {
+        return device.battery
+          ? $filter('translate')(device.enhancedBatteryHealth)
+          : ''
+      }
+    })
+  , batterySource: TextCell({
+      title: gettext('Battery Source')
+    , value: function(device) {
+        return device.battery
+          ? $filter('translate')(device.enhancedBatterySource)
+          : ''
+      }
+    })
+  , batteryStatus: TextCell({
+      title: gettext('Battery Status')
+    , value: function(device) {
+        return device.battery
+          ? $filter('translate')(device.enhancedBatteryStatus)
+          : ''
+      }
+    })
+  , batteryLevel: NumberCell({
+      title: gettext('Battery Level')
+    , value: function(device) {
+        return device.battery
+          ? Math.floor(device.battery.level / device.battery.scale * 100)
+          : null
+      }
+    , format: function(value) {
+        return value === null ? '' : value + '%'
+      }
+    })
+  , batteryTemp: NumberCell({
+      title: gettext('Battery Temp')
+    , value: function(device) {
+        return device.battery ? device.battery.temp : null
+      }
+    , format: function(value) {
+        return value === null ? '' : value + '°C'
+      }
+    })
+  , provider: TextCell({
+      title: gettext('Location')
+    , value: function(device) {
+        return device.provider ? device.provider.name : ''
+      }
+    })
+  , notes: DeviceNoteCell({
+      title: gettext('Notes')
+    , value: function(device) {
+        return device.notes || ''
+      }
+    })
+  , owner: LinkCell({
+      title: gettext('User')
+    , target: '_blank'
+    , value: function(device) {
+        return device.owner ? device.owner.name : ''
+      }
+    , link: function(device) {
+        return device.owner ? device.enhancedUserProfileUrl : ''
+      }
+    })
+  }
 }
