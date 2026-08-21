@@ -71,10 +71,6 @@ module.exports = function DeviceScreenDirective(
           // @todo Maybe handle
         }
 
-        ws.onopen = function openListener() {
-          checkEnabled()
-        }
-
         var canvas = element.find('canvas')[0]
         var g = canvas.getContext('2d')
         var positioner = element.find('div')[0]
@@ -98,6 +94,12 @@ module.exports = function DeviceScreenDirective(
         }
 
         var cachedEnabled = false
+
+        function onScreenInterestAreaChanged() {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send('size ' + adjustedBoundSize.w + 'x' + adjustedBoundSize.h)
+          }
+        }
 
         function updateBounds() {
           function adjustBoundedSize(w, h) {
@@ -167,6 +169,19 @@ module.exports = function DeviceScreenDirective(
           )
         }
 
+        function onScreenInterestGained() {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send('size ' + adjustedBoundSize.w + 'x' + adjustedBoundSize.h)
+            ws.send('on')
+          }
+        }
+
+        function onScreenInterestLost() {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send('off')
+          }
+        }
+
         function checkEnabled() {
           var newEnabled = shouldUpdateScreen()
 
@@ -185,26 +200,17 @@ module.exports = function DeviceScreenDirective(
           cachedEnabled = newEnabled
         }
 
-        function onScreenInterestGained() {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send('size ' + adjustedBoundSize.w + 'x' + adjustedBoundSize.h)
-            ws.send('on')
-          }
-        }
-
-        function onScreenInterestAreaChanged() {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send('size ' + adjustedBoundSize.w + 'x' + adjustedBoundSize.h)
-          }
-        }
-
-        function onScreenInterestLost() {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send('off')
-          }
+        ws.onopen = function openListener() {
+          checkEnabled()
         }
 
         var canvasAspect = 1
+        var parentAspect = 1
+
+        function maybeFlipLetterbox() {
+          element[0].classList.toggle(
+            'letterboxed', parentAspect < canvasAspect)
+        }
 
         ws.onmessage = (function() {
           var cachedScreen = {
@@ -374,16 +380,10 @@ module.exports = function DeviceScreenDirective(
           control.rotate(90)
         })
 
-        var parentAspect = 1
 
         function resizeListener() {
           parentAspect = element[0].offsetWidth / element[0].offsetHeight
           maybeFlipLetterbox()
-        }
-
-        function maybeFlipLetterbox() {
-          element[0].classList.toggle(
-            'letterboxed', parentAspect < canvasAspect)
         }
 
         $window.addEventListener('resize', resizeListener, false)
@@ -525,6 +525,12 @@ module.exports = function DeviceScreenDirective(
           return ++seq >= cycle ? (seq = 0) : seq
         }
 
+        function createFinger(index) {
+          var el = document.createElement('span')
+          el.className = 'finger finger-' + index
+          return el
+        }
+
         function createSlots() {
           // The reverse order is important because slots and fingers are in
           // opposite sort order. Anyway don't change anything here unless
@@ -555,12 +561,6 @@ module.exports = function DeviceScreenDirective(
           }
         }
 
-        function createFinger(index) {
-          var el = document.createElement('span')
-          el.className = 'finger finger-' + index
-          return el
-        }
-
         function calculateBounds() {
           var el = element[0]
 
@@ -573,66 +573,6 @@ module.exports = function DeviceScreenDirective(
             screen.bounds.x += el.offsetLeft
             screen.bounds.y += el.offsetTop
             el = el.offsetParent
-          }
-        }
-
-        function mouseDownListener(event) {
-          var e = event
-          if (e.originalEvent) {
-            e = e.originalEvent
-          }
-
-          // Skip secondary click
-          if (e.which === 3) {
-            return
-          }
-
-          e.preventDefault()
-
-          fakePinch = e.altKey
-
-          calculateBounds()
-          startMousing()
-
-          var x = e.pageX - screen.bounds.x
-          var y = e.pageY - screen.bounds.y
-          var pressure = 0.5
-          var scaled = scaler.coords(
-                screen.bounds.w
-              , screen.bounds.h
-              , x
-              , y
-              , screen.rotation
-              )
-
-          control.touchDown(nextSeq(), 0, scaled.xP, scaled.yP, pressure)
-
-          if (fakePinch) {
-            control.touchDown(nextSeq(), 1, 1 - scaled.xP, 1 - scaled.yP,
-              pressure)
-          }
-
-          control.touchCommit(nextSeq())
-
-          activateFinger(0, x, y, pressure)
-
-          if (fakePinch) {
-            activateFinger(1, -e.pageX + screen.bounds.x + screen.bounds.w,
-              -e.pageY + screen.bounds.y + screen.bounds.h, pressure)
-          }
-
-          element.bind('mousemove', mouseMoveListener)
-          $document.bind('mouseup', mouseUpListener)
-          $document.bind('mouseleave', mouseUpListener)
-
-          if (lastPossiblyBuggyMouseUpEvent &&
-              lastPossiblyBuggyMouseUpEvent.timeStamp > e.timeStamp) {
-            // We got mouseup before mousedown. See mouseUpBugWorkaroundListener
-            // for details.
-            mouseUpListener(lastPossiblyBuggyMouseUpEvent)
-          }
-          else {
-            lastPossiblyBuggyMouseUpEvent = null
           }
         }
 
@@ -715,7 +655,82 @@ module.exports = function DeviceScreenDirective(
             deactivateFinger(1)
           }
 
+          // mutual reference: stopMousing unbinds this listener
+          // eslint-disable-next-line no-use-before-define
           stopMousing()
+        }
+
+        function stopMousing() {
+          element.unbind('mousemove', mouseMoveListener)
+          $document.unbind('mouseup', mouseUpListener)
+          $document.unbind('mouseleave', mouseUpListener)
+          deactivateFingers()
+          control.gestureStop(nextSeq())
+        }
+
+        function startMousing() {
+          control.gestureStart(nextSeq())
+          input[0].focus()
+        }
+
+        function mouseDownListener(event) {
+          var e = event
+          if (e.originalEvent) {
+            e = e.originalEvent
+          }
+
+          // Skip secondary click
+          if (e.which === 3) {
+            return
+          }
+
+          e.preventDefault()
+
+          fakePinch = e.altKey
+
+          calculateBounds()
+          startMousing()
+
+          var x = e.pageX - screen.bounds.x
+          var y = e.pageY - screen.bounds.y
+          var pressure = 0.5
+          var scaled = scaler.coords(
+                screen.bounds.w
+              , screen.bounds.h
+              , x
+              , y
+              , screen.rotation
+              )
+
+          control.touchDown(nextSeq(), 0, scaled.xP, scaled.yP, pressure)
+
+          if (fakePinch) {
+            control.touchDown(nextSeq(), 1, 1 - scaled.xP, 1 - scaled.yP,
+              pressure)
+          }
+
+          control.touchCommit(nextSeq())
+
+          activateFinger(0, x, y, pressure)
+
+          if (fakePinch) {
+            activateFinger(1, -e.pageX + screen.bounds.x + screen.bounds.w,
+              -e.pageY + screen.bounds.y + screen.bounds.h, pressure)
+          }
+
+          element.bind('mousemove', mouseMoveListener)
+          $document.bind('mouseup', mouseUpListener)
+          $document.bind('mouseleave', mouseUpListener)
+
+          if (lastPossiblyBuggyMouseUpEvent &&
+              lastPossiblyBuggyMouseUpEvent.timeStamp > e.timeStamp) {
+            // We got mouseup before mousedown. See mouseUpBugWorkaroundListener
+            // for details.
+            mouseUpListener(lastPossiblyBuggyMouseUpEvent)
+          }
+          else {
+            lastPossiblyBuggyMouseUpEvent = null
+          }
         }
 
         /*
@@ -773,17 +788,77 @@ module.exports = function DeviceScreenDirective(
           lastPossiblyBuggyMouseUpEvent = e
         }
 
-        function startMousing() {
-          control.gestureStart(nextSeq())
-          input[0].focus()
+        function touchMoveListener(event) {
+          var e = event
+          e.preventDefault()
+
+          if (e.originalEvent) {
+            e = e.originalEvent
+          }
+
+          for (var i = 0, l = e.changedTouches.length; i < l; ++i) {
+            var touch = e.changedTouches[i]
+            var slot = slotted[touch.identifier]
+            var x = touch.pageX - screen.bounds.x
+            var y = touch.pageY - screen.bounds.y
+            var pressure = touch.force || 0.5
+            var scaled = scaler.coords(
+                  screen.bounds.w
+                , screen.bounds.h
+                , x
+                , y
+                , screen.rotation
+                )
+
+            control.touchMove(nextSeq(), slot, scaled.xP, scaled.yP, pressure)
+            activateFinger(slot, x, y, pressure)
+          }
+
+          control.touchCommit(nextSeq())
         }
 
-        function stopMousing() {
-          element.unbind('mousemove', mouseMoveListener)
-          $document.unbind('mouseup', mouseUpListener)
-          $document.unbind('mouseleave', mouseUpListener)
+        function touchEndListener(event) {
+          var e = event
+          if (e.originalEvent) {
+            e = e.originalEvent
+          }
+
+          var foundAny = false
+
+          for (var i = 0, l = e.changedTouches.length; i < l; ++i) {
+            var touch = e.changedTouches[i]
+            var slot = slotted[touch.identifier]
+            // A missing slot means we already disposed of the contact. We may
+            // have gotten a touchend event for the same contact twice.
+            if (typeof slot !== 'undefined') {
+              delete slotted[touch.identifier]
+              slots.push(slot)
+              control.touchUp(nextSeq(), slot)
+              deactivateFinger(slot)
+              foundAny = true
+            }
+          }
+
+          if (foundAny) {
+            control.touchCommit(nextSeq())
+            if (!e.touches.length) {
+              // mutual reference: stopTouching unbinds this listener
+              // eslint-disable-next-line no-use-before-define
+              stopTouching()
+            }
+          }
+        }
+
+        function stopTouching() {
+          element.unbind('touchmove', touchMoveListener)
+          $document.unbind('touchend', touchEndListener)
+          $document.unbind('touchleave', touchEndListener)
           deactivateFingers()
           control.gestureStop(nextSeq())
+        }
+
+        function startTouching() {
+          control.gestureStart(nextSeq())
         }
 
         function touchStartListener(event) {
@@ -854,77 +929,6 @@ module.exports = function DeviceScreenDirective(
           $document.bind('touchleave', touchEndListener)
 
           control.touchCommit(nextSeq())
-        }
-
-        function touchMoveListener(event) {
-          var e = event
-          e.preventDefault()
-
-          if (e.originalEvent) {
-            e = e.originalEvent
-          }
-
-          for (var i = 0, l = e.changedTouches.length; i < l; ++i) {
-            var touch = e.changedTouches[i]
-            var slot = slotted[touch.identifier]
-            var x = touch.pageX - screen.bounds.x
-            var y = touch.pageY - screen.bounds.y
-            var pressure = touch.force || 0.5
-            var scaled = scaler.coords(
-                  screen.bounds.w
-                , screen.bounds.h
-                , x
-                , y
-                , screen.rotation
-                )
-
-            control.touchMove(nextSeq(), slot, scaled.xP, scaled.yP, pressure)
-            activateFinger(slot, x, y, pressure)
-          }
-
-          control.touchCommit(nextSeq())
-        }
-
-        function touchEndListener(event) {
-          var e = event
-          if (e.originalEvent) {
-            e = e.originalEvent
-          }
-
-          var foundAny = false
-
-          for (var i = 0, l = e.changedTouches.length; i < l; ++i) {
-            var touch = e.changedTouches[i]
-            var slot = slotted[touch.identifier]
-            // A missing slot means we already disposed of the contact. We may
-            // have gotten a touchend event for the same contact twice.
-            if (typeof slot !== 'undefined') {
-              delete slotted[touch.identifier]
-              slots.push(slot)
-              control.touchUp(nextSeq(), slot)
-              deactivateFinger(slot)
-              foundAny = true
-            }
-          }
-
-          if (foundAny) {
-            control.touchCommit(nextSeq())
-            if (!e.touches.length) {
-              stopTouching()
-            }
-          }
-        }
-
-        function startTouching() {
-          control.gestureStart(nextSeq())
-        }
-
-        function stopTouching() {
-          element.unbind('touchmove', touchMoveListener)
-          $document.unbind('touchend', touchEndListener)
-          $document.unbind('touchleave', touchEndListener)
-          deactivateFingers()
-          control.gestureStop(nextSeq())
         }
 
         element.on('touchstart', touchStartListener)
