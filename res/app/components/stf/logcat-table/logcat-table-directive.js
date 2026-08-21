@@ -50,7 +50,8 @@ module.exports =
           var limiter = ''
           if (maxVisibleEntries > maxEntriesBuffer) {
             limiter = maxEntriesBuffer
-          } else {
+          }
+          else {
             limiter = maxVisibleEntries
           }
 
@@ -80,7 +81,8 @@ module.exports =
         function shouldAutoScroll() {
           if (autoScrollDependingOnScrollPosition) {
             return scrollPosition === scrollHeight
-          } else {
+          }
+          else {
             return true
           }
         }

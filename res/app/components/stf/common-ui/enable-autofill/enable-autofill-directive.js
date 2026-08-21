@@ -13,7 +13,8 @@ module.exports = function enableAutofillDirective($rootElement, $cookies) {
       // Add attribute method POST to the current form
       if (!tAttrs.method) {
         tElement.attr('method', 'post')
-      } else {
+      }
+      else {
         if (!tAttrs.method.match(/post/i)) {
           throw new Error('Auto-fill only works with form POST method')
         }

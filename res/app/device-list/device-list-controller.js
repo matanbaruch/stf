@@ -205,7 +205,8 @@ module.exports = function DeviceListCtrl(
   $scope.toggle = function(device) {
     if (device.using) {
       $scope.kick(device)
-    } else {
+    }
+    else {
       $location.path('/control/' + device.serial)
     }
   }

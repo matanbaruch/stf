@@ -33,7 +33,8 @@ module.exports = function LogsCtrl($scope, $rootScope, $routeParams, LogcatServi
     if (Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
       $scope.filters.priority = $scope.filters.levelNumbers[
         LogcatService.deviceEntries[deviceSerial].selectedLogLevel - 2]
-    } else {
+    }
+    else {
       if ($scope.started) {
         $scope.filters.priority = $scope.filters.levelNumbers[0]
       }
@@ -45,7 +46,8 @@ module.exports = function LogsCtrl($scope, $rootScope, $routeParams, LogcatServi
       Object.keys(LogcatService.deviceEntries[deviceSerial].filters).forEach(function(entry) {
         if ('filter.' + entry !== 'filter.priority') {
           $scope.filters[entry] = LogcatService.deviceEntries[deviceSerial].filters[entry]
-        } else {
+        }
+        else {
           setFiltersPriority()
         }
       })
@@ -89,7 +91,8 @@ module.exports = function LogsCtrl($scope, $rootScope, $routeParams, LogcatServi
         $scope.device.logs_enabled = true
         setFiltersPriority()
 
-      } else {
+      }
+      else {
         if (Object.keys(LogcatService.deviceEntries).includes(deviceSerial)) {
           LogcatService.deviceEntries[deviceSerial].started = false
         }

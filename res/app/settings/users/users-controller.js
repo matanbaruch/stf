@@ -115,7 +115,9 @@ module.exports = function UsersCtrl(
       CommonService.errorWrapper(
         UsersService.removeUsers
       , search ?
-          [$scope.removingFilters, filteredUsers.map(function(user) { return user.email }).join()] :
+          [$scope.removingFilters, filteredUsers.map(function(user) {
+            return user.email
+          }).join()] :
           [$scope.removingFilters]
       )
     }

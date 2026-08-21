@@ -81,7 +81,8 @@ module.exports = function DeviceListIconsDirective(
 
         if (device.state === 'available') {
           name.classList.add('state-available')
-        } else {
+        }
+        else {
           name.classList.remove('state-available')
         }
 
@@ -147,11 +148,13 @@ module.exports = function DeviceListIconsDirective(
 
         if (e.target.classList.contains('thumbnail')) {
           id = e.target.id
-        } else if (e.target.classList.contains('device-status') ||
+        }
+        else if (e.target.classList.contains('device-status') ||
           e.target.classList.contains('device-photo-small') ||
           e.target.classList.contains('device-name')) {
           id = e.target.parentNode.parentNode.id
-        } else if (e.target.parentNode.classList.contains('device-photo-small')) {
+        }
+        else if (e.target.parentNode.classList.contains('device-photo-small')) {
           id = e.target.parentNode.parentNode.parentNode.id
         }
 

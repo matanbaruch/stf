@@ -16,7 +16,8 @@ module.exports =
                       device[line].tag, device[line].priorityLabel,
                       device[line].message].join('\t') + '\n'
           }
-        } else {
+        }
+        else {
           output = {'deviceOS': device[0].deviceLabel,
                     'serial': device[0].serial,
                     'logs': []}
@@ -99,7 +100,7 @@ module.exports =
           FileSaver.saveAs(parsedOutput,
             (window.location.href).split('/').pop() + '_logs.' + selectedExtension)
         }
-         else {
+        else {
           FileSaver.saveAs(parsedOutput,
             $scope.saveLogFileName + '.' + selectedExtension)
         }

@@ -52,7 +52,8 @@ module.exports = function NativeUrlServiceFactory($window, $timeout) {
         $timeout(function() {
           if (wasBlured) {
             wasBlured = false
-          } else {
+          }
+          else {
             $window.open(options.webUrl, '_blank')
           }
 

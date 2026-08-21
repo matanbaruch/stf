@@ -222,7 +222,8 @@ var protractorExplorer = function(opts, cb) {
     isWebDriverRunning().then(function(running) {
       if (running) {
         runElementExplorer(callback)
-      } else {
+      }
+      else {
         webdriverStandalone({stdio: ['pipe', 'pipe', process.stderr]},
           function() {
 

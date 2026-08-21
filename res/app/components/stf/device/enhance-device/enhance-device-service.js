@@ -87,9 +87,11 @@ module.exports = function EnhanceDeviceServiceFactory($filter, AppState) {
           userProfileUrl.replace('{user}', email) :
           userProfileUrl + email
       }
-    } else if (email.indexOf('@') !== -1) {
+    }
+    else if (email.indexOf('@') !== -1) {
       url = 'mailto:' + email
-    } else {
+    }
+    else {
       url = '/!#/user/' + email
     }
     return url

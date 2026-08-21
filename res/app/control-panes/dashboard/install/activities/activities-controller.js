@@ -52,9 +52,11 @@ module.exports = function ActivitiesCtrl($scope) {
               }
               if (data.path) {
                 uri += '/' + data.path
-              } else if (data.pathPrefix) {
+              }
+              else if (data.pathPrefix) {
                 uri += '/' + data.pathPrefix
-              } else if (data.pathPattern) {
+              }
+              else if (data.pathPattern) {
                 uri += '/' + data.pathPattern
               }
               activityData.push(uri)

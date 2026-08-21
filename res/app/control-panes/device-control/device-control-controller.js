@@ -45,19 +45,22 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
           GroupService.kick(device).then(function() {
             $scope.$digest()
           })
-        } else {
+        }
+        else {
           // Kick the device
           GroupService.kick(device).then(function() {
             $scope.$digest()
           })
           $location.path('/devices/')
         }
-      } else {
+      }
+      else {
         GroupService.kick(device).then(function() {
           $scope.$digest()
         })
       }
-    } catch (e) {
+    }
+    catch (e) {
       // eslint-disable-next-line no-alert
       alert(e.message)
     }
@@ -91,7 +94,8 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
           $scope.currentRotation = 'landscape'
         }
       }, 400)
-    } else if (rotation === 'landscape') {
+    }
+    else if (rotation === 'landscape') {
       $scope.control.rotate(90)
       $timeout(function() {
         if (isPortrait()) {
@@ -106,7 +110,8 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
   $scope.$watch('device.display.rotation', function(newValue) {
     if (isPortrait(newValue)) {
       $scope.currentRotation = 'portrait'
-    } else if (isLandscape(newValue)) {
+    }
+    else if (isLandscape(newValue)) {
       $scope.currentRotation = 'landscape'
     }
   })
@@ -119,7 +124,8 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
     }
     if (angle === 0) {
       angle = 270
-    } else {
+    }
+    else {
       angle -= 90
     }
     $scope.control.rotate(angle)
@@ -136,7 +142,8 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
     }
     if (angle === 270) {
       angle = 0
-    } else {
+    }
+    else {
       angle += 90
     }
     $scope.control.rotate(angle)

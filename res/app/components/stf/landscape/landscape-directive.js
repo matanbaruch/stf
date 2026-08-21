@@ -17,7 +17,8 @@ module.exports =
             body.removeClass('guest-landscape')
 
             scope.$broadcast('guest-portrait')
-          } else {
+          }
+          else {
             body.addClass('guest-landscape')
             body.removeClass('guest-portrait')
 

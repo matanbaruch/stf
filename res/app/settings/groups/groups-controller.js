@@ -594,7 +594,9 @@ module.exports = function GroupsCtrl(
         DevicesService.addOriginGroupDevices :
         GroupsService.addGroupDevices
     , deviceSearch ?
-        [group.id, filteredDevices.map(function(device) { return device.serial }).join()] :
+        [group.id, filteredDevices.map(function(device) {
+          return device.serial
+        }).join()] :
         [group.id])
   }
 
@@ -612,7 +614,9 @@ module.exports = function GroupsCtrl(
         DevicesService.removeOriginGroupDevices :
         GroupsService.removeGroupDevices
     , deviceSearch ?
-        [group.id, filteredDevices.map(function(device) { return device.serial }).join()] :
+        [group.id, filteredDevices.map(function(device) {
+          return device.serial
+        }).join()] :
         [group.id])
   }
 
@@ -626,7 +630,9 @@ module.exports = function GroupsCtrl(
     CommonService.errorWrapper(
       GroupsService.addGroupUsers
     , userSearch ?
-        [group.id, filteredUsers.map(function(user) { return user.email }).join()] :
+        [group.id, filteredUsers.map(function(user) {
+          return user.email
+        }).join()] :
         [group.id])
   }
 
@@ -640,7 +646,9 @@ module.exports = function GroupsCtrl(
     CommonService.errorWrapper(
       GroupsService.removeGroupUsers
     , userSearch ?
-        [group.id, filteredUsers.map(function(user) { return user.email }).join()] :
+        [group.id, filteredUsers.map(function(user) {
+          return user.email
+        }).join()] :
         [group.id])
   }
 
@@ -673,7 +681,9 @@ module.exports = function GroupsCtrl(
       else {
         CommonService.errorWrapper(
           GroupsService.removeGroups
-        , [filteredGroups.map(function(group) { return group.id }).join()])
+        , [filteredGroups.map(function(group) {
+          return group.id
+        }).join()])
       }
     }
 
