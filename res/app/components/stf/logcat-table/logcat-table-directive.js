@@ -162,7 +162,7 @@ module.exports =
            * -... combinations
            *  in other case colour will be set to default.
            *
-           * @param {event} event object
+           * @param {event} e object
            * @returns {None} NaN
            */
         scope.validateDate = function(e) {

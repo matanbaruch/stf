@@ -28,7 +28,7 @@ module.exports = function LogcatServiceFactory(socket, FilterStringService) {
         },
         set: function(value) {
           _filters[prop] = value || null
-          service.serverFilters[0][prop] = value || undefined
+          service.serverFilters[0][prop] = value || null
           service.filters.filterLines()
         }
       })
