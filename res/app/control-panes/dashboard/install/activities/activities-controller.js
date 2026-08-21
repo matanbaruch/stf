@@ -28,7 +28,6 @@ module.exports = function ActivitiesCtrl($scope) {
         }
 
         _.forEach(activity.intentFilters, function(intentFilter) {
-
           _.forEach(intentFilter.actions, function(action) {
             if (action.name) {
               activityActions.push(action.name)

@@ -114,7 +114,7 @@ module.exports = function TransactionServiceFactory(socket, TransactionError) {
     this.channel = channel
     this.results = results
     this.promise = Promise.settle(targets.map(function(target) {
-        var result = new options.result(target)
+        var result = new options.Result(target)
         var pendingResult = new PendingTransactionResult(result)
         pending[options.id ? target[options.id] : target.id] = pendingResult
         results.push(result)
@@ -135,7 +135,7 @@ module.exports = function TransactionServiceFactory(socket, TransactionError) {
   }
 
   function SingleTargetTransaction(target, options) {
-    var result = new options.result(target)
+    var result = new options.Result(target)
     var pending = new PendingTransactionResult(result)
     var channel = createChannel()
 
@@ -199,19 +199,19 @@ module.exports = function TransactionServiceFactory(socket, TransactionError) {
   DeviceTransactionResult.constructor = DeviceTransactionResult
 
   transactionService.create = function(target, options) {
-    if (options && !options.result) {
-      options.result = TransactionResult
+    if (options && !options.Result) {
+      options.Result = TransactionResult
     }
 
     if (Array.isArray(target)) {
       return new MultiTargetTransaction(target, options || {
-        result: DeviceTransactionResult
+        Result: DeviceTransactionResult
       , id: 'serial'
       })
     }
     else {
       return new SingleTargetTransaction(target, options || {
-        result: DeviceTransactionResult
+        Result: DeviceTransactionResult
       , id: 'serial'
       })
     }

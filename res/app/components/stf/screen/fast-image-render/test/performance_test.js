@@ -5,8 +5,8 @@ var frameNumberElement = document.querySelector('#frame-number')
 var totalTimeElement = document.querySelector('#total-time')
 
 var frame = {
-  total: 100,
-  current: 0
+  total: 100
+  , current: 0
 }
 
 function FastImageRender() {

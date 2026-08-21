@@ -709,10 +709,10 @@ module.exports = function GroupsCtrl(
 
   $scope.updateGroupSchedule = function(group) {
     CommonService.errorWrapper(GroupsService.updateGroup, [group.id, {
-      'class': $scope.groupsEnv[group.id].tmpClass
-    , 'repetitions': parseInt($scope.groupsEnv[group.id].tmpRepetitions, 10)
-    , 'startTime': $scope.groupsEnv[group.id].tmpStartDate
-    , 'stopTime': $scope.groupsEnv[group.id].tmpStopDate
+      class: $scope.groupsEnv[group.id].tmpClass
+    , repetitions: parseInt($scope.groupsEnv[group.id].tmpRepetitions, 10)
+    , startTime: $scope.groupsEnv[group.id].tmpStartDate
+    , stopTime: $scope.groupsEnv[group.id].tmpStopDate
     }])
     .then(function(response) {
       if (!response.success &&
@@ -739,13 +739,13 @@ module.exports = function GroupsCtrl(
   $scope.updateGroupState = function(group) {
     CommonService.errorWrapper(
       GroupsService.updateGroup
-    , [group.id, {'state': 'ready'}])
+    , [group.id, {state: 'ready'}])
   }
 
   $scope.updateGroupName = function(group) {
     CommonService.errorWrapper(
       GroupsService.updateGroup
-    , [group.id, {'name': $scope.groupsEnv[group.id].tmpName}])
+    , [group.id, {name: $scope.groupsEnv[group.id].tmpName}])
   }
 
   $scope.$on('user.settings.groups.updated', function(event, message) {
@@ -841,7 +841,6 @@ module.exports = function GroupsCtrl(
         ) &&
         updateUser(message.user, message.timeStamp) &&
         message.groups.length) {
-
       Promise.map(message.groups, function(groupId) {
         return getGroupClass(groupId).then(function(_class) {
           return !_class || _class === 'bookable'

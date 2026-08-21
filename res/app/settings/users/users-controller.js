@@ -143,12 +143,12 @@ module.exports = function UsersCtrl(
       $scope.tmpEnv.defaultQuotasTooltip = 'Bad syntax'
       return false
     }
-    if ($scope.tmpEnv.defaultGroupsNumber
-          !== $scope.adminUser.groups.quotas.defaultGroupsNumber ||
-        $scope.tmpEnv.defaultGroupsDuration
-          !== $scope.adminUser.groups.quotas.defaultGroupsDuration ||
-        $scope.tmpEnv.defaultGroupsRepetitions
-          !== $scope.adminUser.groups.quotas.defaultGroupsRepetitions
+    if ($scope.tmpEnv.defaultGroupsNumber !==
+          $scope.adminUser.groups.quotas.defaultGroupsNumber ||
+        $scope.tmpEnv.defaultGroupsDuration !==
+          $scope.adminUser.groups.quotas.defaultGroupsDuration ||
+        $scope.tmpEnv.defaultGroupsRepetitions !==
+          $scope.adminUser.groups.quotas.defaultGroupsRepetitions
        ) {
       $scope.tmpEnv.defaultQuotasTooltip = ''
       return true

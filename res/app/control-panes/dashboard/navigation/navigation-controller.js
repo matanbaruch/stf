@@ -5,7 +5,6 @@
 var _ = require('lodash')
 
 module.exports = function NavigationCtrl($scope, $rootScope) {
-
   var faviconIsSet = false
 
   function setUrlFavicon(url) {

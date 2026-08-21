@@ -31,9 +31,9 @@ module.exports =
 
     SettingsService.sync(
       LanguageService, {
-        target: LanguageService.settingKey,
-        source: LanguageService.settingKey,
-        defaultValue: LanguageService.detectedLanguage
+        target: LanguageService.settingKey
+        , source: LanguageService.settingKey
+        , defaultValue: LanguageService.detectedLanguage
       }, updateLanguage
     )
 

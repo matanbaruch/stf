@@ -27,10 +27,13 @@ function zeroPadTwoDigit(digit) {
 }
 
 function compareIgnoreCase(a, b) {
-/***** fix bug: cast to String for Safari compatibility ****/
+// block-start comment: the blank line this wants is a padded-blocks error
+// eslint-disable-next-line lines-around-comment
+/** *** fix bug: cast to String for Safari compatibility ****/
   var la = (String(a) || '').toLowerCase()
   var lb = (String(b) || '').toLowerCase()
-/***********************************************************/
+
+/** *********************************************************/
   if (la === lb) {
     return 0
   }
@@ -40,10 +43,13 @@ function compareIgnoreCase(a, b) {
 }
 
 function filterIgnoreCase(a, filterValue) {
-/***** fix bug: cast to String for Safari compatibility ****/
+// block-start comment: the blank line this wants is a padded-blocks error
+// eslint-disable-next-line lines-around-comment
+/** *** fix bug: cast to String for Safari compatibility ****/
   var va = (String(a) || '').toLowerCase()
   var vb = String(filterValue).toLowerCase()
-/***********************************************************/
+
+/** *********************************************************/
   return va.indexOf(vb) !== -1
 }
 
@@ -57,7 +63,7 @@ function compareRespectCase(a, b) {
 }
 
 
-function TextCell(options) {
+function textCell(options) {
   return _.defaults(options, {
     title: options.title
   , defaultOrder: 'asc'
@@ -80,7 +86,7 @@ function TextCell(options) {
   })
 }
 
-function NumberCell(options) {
+function numberCell(options) {
   return _.defaults(options, {
     title: options.title
   , defaultOrder: 'asc'
@@ -110,7 +116,7 @@ function NumberCell(options) {
   })
 }
 
-function DateCell(options) {
+function dateCell(options) {
   return _.defaults(options, {
     title: options.title
   , defaultOrder: 'desc'
@@ -123,11 +129,11 @@ function DateCell(options) {
       var t = td.firstChild
       var date = options.value(item)
       if (date) {
-        t.nodeValue = date.getFullYear()
-          + '-'
-          + zeroPadTwoDigit(date.getMonth() + 1)
-          + '-'
-          + zeroPadTwoDigit(date.getDate())
+        t.nodeValue = date.getFullYear() +
+          '-' +
+          zeroPadTwoDigit(date.getMonth() + 1) +
+          '-' +
+          zeroPadTwoDigit(date.getDate())
       }
       else {
         t.nodeValue = ''
@@ -141,9 +147,9 @@ function DateCell(options) {
     }
   , filter: (function() {
       function dateNumber(d) {
-        return d
-          ? d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate()
-          : 0
+        return d ?
+          d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate() :
+          0
       }
       return function(item, filter) {
         var filterDate = new Date(filter.query)
@@ -155,7 +161,7 @@ function DateCell(options) {
   })
 }
 
-function LinkCell(options) {
+function linkCell(options) {
   return _.defaults(options, {
     title: options.title
   , defaultOrder: 'asc'
@@ -189,7 +195,7 @@ function LinkCell(options) {
   })
 }
 
-function DeviceBrowserCell(options) {
+function deviceBrowserCell(options) {
   return _.defaults(options, {
     title: options.title
   , defaultOrder: 'asc'
@@ -237,7 +243,7 @@ function DeviceBrowserCell(options) {
   })
 }
 
-function DeviceModelCell(options) {
+function deviceModelCell(options) {
   return _.defaults(options, {
     title: options.title
   , defaultOrder: 'asc'
@@ -277,7 +283,7 @@ function DeviceModelCell(options) {
   })
 }
 
-function DeviceNameCell(options, ownerEmail) {
+function deviceNameCell(options, ownerEmail) {
   return _.defaults(options, {
     title: options.title
   , defaultOrder: 'asc'
@@ -318,7 +324,7 @@ function DeviceNameCell(options, ownerEmail) {
   })
 }
 
-function DeviceStatusCell(options) {
+function deviceStatusCell(options) {
   var stateClasses = {
     using: 'state-using btn-primary'
   , busy: 'state-busy btn-warning'
@@ -382,7 +388,7 @@ function DeviceStatusCell(options) {
   })
 }
 
-function DeviceNoteCell(options) {
+function deviceNoteCell(options) {
   return _.defaults(options, {
     title: options.title
   , defaultOrder: 'asc'
@@ -421,25 +427,25 @@ function DeviceNoteCell(options) {
 module.exports = function DeviceColumnService($filter, gettext, SettingsService, AppState) {
   // Definitions for all possible values.
   return {
-    state: DeviceStatusCell({
+    state: deviceStatusCell({
       title: gettext('Status')
     , value: function(device) {
         return $filter('translate')(device.enhancedStateAction)
       }
     })
-  , group: TextCell({
+  , group: textCell({
       title: gettext('Group Name')
     , value: function(device) {
         return $filter('translate')(device.group.name)
       }
     })
-  , groupSchedule: TextCell({
+  , groupSchedule: textCell({
       title: gettext('Group Class')
     , value: function(device) {
         return $filter('translate')(device.group.class)
       }
     })
-  , groupOwner: LinkCell({
+  , groupOwner: linkCell({
       title: gettext('Group Owner')
     , target: '_blank'
     , value: function(device) {
@@ -449,55 +455,55 @@ module.exports = function DeviceColumnService($filter, gettext, SettingsService,
         return device.enhancedGroupOwnerProfileUrl
       }
     })
-  , groupEndTime: TextCell({
+  , groupEndTime: textCell({
       title: gettext('Group Expiration Date')
     , value: function(device) {
         return $filter('date')(device.group.lifeTime.stop, SettingsService.get('dateFormat'))
       }
     })
-  , groupStartTime: TextCell({
+  , groupStartTime: textCell({
       title: gettext('Group Starting Date')
     , value: function(device) {
         return $filter('date')(device.group.lifeTime.start, SettingsService.get('dateFormat'))
       }
     })
-  , groupRepetitions: TextCell({
+  , groupRepetitions: textCell({
       title: gettext('Group Repetitions')
     , value: function(device) {
         return device.group.repetitions
       }
     })
-  , groupOrigin: TextCell({
+  , groupOrigin: textCell({
       title: gettext('Group Origin')
     , value: function(device) {
         return $filter('translate')(device.group.originName)
       }
     })
-  , model: DeviceModelCell({
+  , model: deviceModelCell({
       title: gettext('Model')
     , value: function(device) {
         return device.model || device.serial
       }
     })
-  , name: DeviceNameCell({
+  , name: deviceNameCell({
       title: gettext('Product')
     , value: function(device) {
         return device.name || device.model || device.serial
       }
     }, AppState.user.email)
-  , operator: TextCell({
+  , operator: textCell({
       title: gettext('Carrier')
     , value: function(device) {
         return device.operator || ''
       }
     })
-  , releasedAt: DateCell({
+  , releasedAt: dateCell({
       title: gettext('Released')
     , value: function(device) {
         return device.releasedAt ? new Date(device.releasedAt) : null
       }
     })
-  , version: TextCell({
+  , version: textCell({
       title: gettext('OS')
     , value: function(device) {
         return device.version || ''
@@ -571,7 +577,7 @@ module.exports = function DeviceColumnService($filter, gettext, SettingsService,
         return true
       }
     })
-  , network: TextCell({
+  , network: textCell({
       title: gettext('Network')
     , value: function(device) {
         if (!device.network) {
@@ -589,49 +595,49 @@ module.exports = function DeviceColumnService($filter, gettext, SettingsService,
         return (device.network.type || '').toUpperCase()
       }
     })
-  , display: TextCell({
+  , display: textCell({
       title: gettext('Screen')
     , defaultOrder: 'desc'
     , value: function(device) {
-        return device.display && device.display.width
-          ? device.display.width + 'x' + device.display.height
-          : ''
+        return device.display && device.display.width ?
+          device.display.width + 'x' + device.display.height :
+          ''
       }
     , compare: function(deviceA, deviceB) {
-        var va = deviceA.display && deviceA.display.width
-          ? deviceA.display.width * deviceA.display.height
-          : 0
-        var vb = deviceB.display && deviceB.display.width
-          ? deviceB.display.width * deviceB.display.height
-          : 0
+        var va = deviceA.display && deviceA.display.width ?
+          deviceA.display.width * deviceA.display.height :
+          0
+        var vb = deviceB.display && deviceB.display.width ?
+          deviceB.display.width * deviceB.display.height :
+          0
         return va - vb
       }
     })
-  , browser: DeviceBrowserCell({
+  , browser: deviceBrowserCell({
       title: gettext('Browser')
     , value: function(device) {
         return device.browser || {apps: []}
       }
     })
-  , serial: TextCell({
+  , serial: textCell({
       title: gettext('Serial')
     , value: function(device) {
         return device.serial || ''
       }
     })
-  , manufacturer: TextCell({
+  , manufacturer: textCell({
       title: gettext('Manufacturer')
     , value: function(device) {
         return device.manufacturer || ''
       }
     })
-  , marketName: TextCell({
+  , marketName: textCell({
     title: gettext('Market name')
     , value: function(device) {
       return device.marketName || ''
     }
   })
-  , sdk: NumberCell({
+  , sdk: numberCell({
       title: gettext('SDK')
     , defaultOrder: 'desc'
     , value: function(device) {
@@ -641,84 +647,84 @@ module.exports = function DeviceColumnService($filter, gettext, SettingsService,
         return value || ''
       }
     })
-  , abi: TextCell({
+  , abi: textCell({
       title: gettext('ABI')
     , value: function(device) {
         return device.abi || ''
       }
     })
-  , cpuPlatform: TextCell({
+  , cpuPlatform: textCell({
       title: gettext('CPU Platform')
     , value: function(device) {
         return device.cpuPlatform || ''
       }
     })
-  , openGLESVersion: TextCell({
+  , openGLESVersion: textCell({
       title: gettext('OpenGL ES version')
     , value: function(device) {
         return device.openGLESVersion || ''
       }
     })
-  , phone: TextCell({
+  , phone: textCell({
       title: gettext('Phone')
     , value: function(device) {
         return device.phone ? device.phone.phoneNumber : ''
       }
     })
-  , imei: TextCell({
+  , imei: textCell({
       title: gettext('Phone IMEI')
     , value: function(device) {
         return device.phone ? device.phone.imei : ''
       }
     })
-  , imsi: TextCell({
+  , imsi: textCell({
       title: gettext('Phone IMSI')
     , value: function(device) {
         return device.phone ? device.phone.imsi : ''
       }
     })
-  , iccid: TextCell({
+  , iccid: textCell({
       title: gettext('Phone ICCID')
     , value: function(device) {
         return device.phone ? device.phone.iccid : ''
       }
     })
-  , batteryHealth: TextCell({
+  , batteryHealth: textCell({
       title: gettext('Battery Health')
     , value: function(device) {
-        return device.battery
-          ? $filter('translate')(device.enhancedBatteryHealth)
-          : ''
+        return device.battery ?
+          $filter('translate')(device.enhancedBatteryHealth) :
+          ''
       }
     })
-  , batterySource: TextCell({
+  , batterySource: textCell({
       title: gettext('Battery Source')
     , value: function(device) {
-        return device.battery
-          ? $filter('translate')(device.enhancedBatterySource)
-          : ''
+        return device.battery ?
+          $filter('translate')(device.enhancedBatterySource) :
+          ''
       }
     })
-  , batteryStatus: TextCell({
+  , batteryStatus: textCell({
       title: gettext('Battery Status')
     , value: function(device) {
-        return device.battery
-          ? $filter('translate')(device.enhancedBatteryStatus)
-          : ''
+        return device.battery ?
+          $filter('translate')(device.enhancedBatteryStatus) :
+          ''
       }
     })
-  , batteryLevel: NumberCell({
+  , batteryLevel: numberCell({
       title: gettext('Battery Level')
     , value: function(device) {
-        return device.battery
-          ? Math.floor(device.battery.level / device.battery.scale * 100)
-          : null
+        return device.battery ?
+          Math.floor(device.battery.level / device.battery.scale * 100) :
+          null
       }
     , format: function(value) {
         return value === null ? '' : value + '%'
       }
     })
-  , batteryTemp: NumberCell({
+  , batteryTemp: numberCell({
       title: gettext('Battery Temp')
     , value: function(device) {
         return device.battery ? device.battery.temp : null
@@ -727,19 +733,19 @@ module.exports = function DeviceColumnService($filter, gettext, SettingsService,
         return value === null ? '' : value + '°C'
       }
     })
-  , provider: TextCell({
+  , provider: textCell({
       title: gettext('Location')
     , value: function(device) {
         return device.provider ? device.provider.name : ''
       }
     })
-  , notes: DeviceNoteCell({
+  , notes: deviceNoteCell({
       title: gettext('Notes')
     , value: function(device) {
         return device.notes || ''
       }
     })
-  , owner: LinkCell({
+  , owner: linkCell({
       title: gettext('User')
     , target: '_blank'
     , value: function(device) {

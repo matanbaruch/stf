@@ -222,8 +222,8 @@ module.exports = function DeviceListCtrl(
   }
 
   $scope.search = {
-    deviceFilter: '',
-    focusElement: false
+    deviceFilter: ''
+    , focusElement: false
   }
 
   $scope.focusSearch = function() {

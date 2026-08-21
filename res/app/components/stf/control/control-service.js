@@ -115,7 +115,7 @@ module.exports = function ControlServiceFactory(
       return sendTwoWay('clipboard.copy')
     }
 
-    //@TODO: Refactor this please
+    // @TODO: Refactor this please
     var that = this
     this.getClipboardContent = function() {
       that.copy().then(function(result) {
@@ -162,8 +162,8 @@ module.exports = function ControlServiceFactory(
 
     this.rotate = function(rotation, lock) {
       return sendOneWay('display.rotate', {
-        rotation: rotation,
-        lock: lock
+        rotation: rotation
+        , lock: lock
       })
     }
 

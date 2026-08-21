@@ -9,7 +9,7 @@ module.exports = function DeviceListIconsDirective(
 , LogcatService
 , $rootScope
 ) {
-  function DeviceItem() {
+  function deviceItem() {
     return {
       build: function() {
         var li = document.createElement('li')
@@ -61,15 +61,15 @@ module.exports = function DeviceListIconsDirective(
 
         function getStateClasses(state) {
           var stateClasses = {
-            using: 'state-using btn-primary',
-            busy: 'state-busy btn-warning',
-            available: 'state-available btn-primary-outline',
-            ready: 'state-ready btn-primary-outline',
-            present: 'state-present btn-primary-outline',
-            preparing: 'state-preparing btn-primary-outline btn-success-outline',
-            unauthorized: 'state-unauthorized btn-danger-outline',
-            offline: 'state-offline btn-warning-outline',
-            automation: 'state-automation btn-info'
+            using: 'state-using btn-primary'
+            , busy: 'state-busy btn-warning'
+            , available: 'state-available btn-primary-outline'
+            , ready: 'state-ready btn-primary-outline'
+            , present: 'state-present btn-primary-outline'
+            , preparing: 'state-preparing btn-primary-outline btn-success-outline'
+            , unauthorized: 'state-unauthorized btn-danger-outline'
+            , offline: 'state-offline btn-warning-outline'
+            , automation: 'state-automation btn-info'
           }[state]
           if (typeof stateClasses === 'undefined') {
             stateClasses = 'btn-default-outline'
@@ -120,7 +120,7 @@ module.exports = function DeviceListIconsDirective(
       var items = list.childNodes
       var prefix = 'd' + Math.floor(Math.random() * 1000000) + '-'
       var mapping = Object.create(null)
-      var builder = DeviceItem()
+      var builder = deviceItem()
 
 
       function kickDevice(device, force) {
@@ -143,7 +143,6 @@ module.exports = function DeviceListIconsDirective(
       }
 
       element.on('click', function(e) {
-
         var id
 
         if (e.target.classList.contains('thumbnail')) {
@@ -225,7 +224,7 @@ module.exports = function DeviceListIconsDirective(
 
       // Updates visible columns. This method doesn't necessarily have to be
       // the fastest because it shouldn't get called all the time.
-      function patchItem(/*item, device, patch*/) {
+      function patchItem(/* item, device, patch*/) {
         // Currently no-op
       }
 

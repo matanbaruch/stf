@@ -3,9 +3,9 @@
 
 module.exports = function($location) {
   return {
-    restrict: 'EA',
-    scope: {},
-    link: function(scope, element, attrs) {
+    restrict: 'EA'
+    , scope: {}
+    , link: function(scope, element, attrs) {
       var links = element.find('a')
       var onClass = attrs.navMenu || 'current'
       var urlMap = []
@@ -31,7 +31,6 @@ module.exports = function($location) {
       }
 
       function activateLink() {
-
         var location = $location.path()
         var pathLink = ''
 

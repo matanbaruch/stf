@@ -2,7 +2,6 @@ var _ = require('lodash')
 
 module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
   $location, $timeout, $window, $rootScope, LogcatService) {
-
   $scope.showScreen = true
 
   $scope.groupTracker = DeviceService.trackGroup($scope)
@@ -31,10 +30,8 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
     try {
       // If we're trying to kick current device
       if (device.serial === $scope.device.serial) {
-
         // If there is more than one device left
         if ($scope.groupDevices.length > 1) {
-
           // Control first free device first
           var firstFreeDevice = _.find($scope.groupDevices, function(dev) {
             return dev.serial !== $scope.device.serial
@@ -152,5 +149,4 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
       $window.resizeTo($window.outerHeight, $window.outerWidth)
     }
   }
-
 }

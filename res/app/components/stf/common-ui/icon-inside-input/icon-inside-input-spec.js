@@ -1,5 +1,4 @@
 describe('iconInsideInput', function() {
-
   beforeEach(angular.mock.module(require('./').name))
 
   it('should ...', function() {

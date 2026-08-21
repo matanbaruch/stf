@@ -1,8 +1,8 @@
 module.exports =
   function landscapeDirective(BrowserInfo, $document, $window) {
     return {
-      restrict: 'A',
-      link: function(scope) {
+      restrict: 'A'
+      , link: function(scope) {
         var body = angular.element($document[0].body)
 
         function rotateGuest(portrait) {

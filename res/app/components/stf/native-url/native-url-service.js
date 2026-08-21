@@ -26,7 +26,6 @@ module.exports = function NativeUrlServiceFactory($window, $timeout) {
   var cachedWindowOnBlur = $window.onblur
 
   service.open = function(options) {
-
     switch (fallbackMethod) {
       case 'USE_NEW_WINDOW':
         // Doesn't work well on Chrome
@@ -83,7 +82,6 @@ module.exports = function NativeUrlServiceFactory($window, $timeout) {
         break
       default:
     }
-
   }
 
   return service

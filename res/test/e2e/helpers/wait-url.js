@@ -6,7 +6,6 @@
  * @returns {!webdriver.promise.Promise} Promise
  */
 module.exports = function waitUrl(urlRegex) {
-
   return browser.wait(function waitForUrlToChangeTo() {
     return browser.getCurrentUrl().then(function compareCurrentUrl(url) {
       return urlRegex.test(url)

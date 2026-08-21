@@ -72,9 +72,9 @@ module.exports = function InstallService(
         installation.update(uploadResult.progress / 2, uploadResult.lastData)
         installation.manifest = uploadResult.body
         return control.install({
-            href: installation.href,
-            manifest: installation.manifest,
-            launch: installation.launch
+            href: installation.href
+            , manifest: installation.manifest
+            , launch: installation.launch
           })
           .progressed(function(result) {
             installation.update(50 + result.progress / 2, result.lastData)
@@ -106,11 +106,11 @@ module.exports = function InstallService(
         installation.update(100 / 2, 'processing')
         installation.href = res.data.resources.file.href
         if(isIOSPlatform) {
-          installation.manifest = {'application': {'activities': {}}}
+          installation.manifest = {application: {activities: {}}}
           return control.install({
-            href: installation.href,
-            manifest: installation.manifest,
-            launch: installation.launch
+            href: installation.href
+            , manifest: installation.manifest
+            , launch: installation.launch
           })
             .progressed(function(result) {
               installation.update(50 + result.progress / 2, result.lastData)
@@ -122,9 +122,9 @@ module.exports = function InstallService(
               if (res.data.success) {
                 installation.manifest = res.data.manifest
                 return control.install({
-                  href: installation.href,
-                  manifest: installation.manifest,
-                  launch: installation.launch
+                  href: installation.href
+                  , manifest: installation.manifest
+                  , launch: installation.launch
                 })
                   .progressed(function(result) {
                     installation.update(50 + result.progress / 2, result.lastData)

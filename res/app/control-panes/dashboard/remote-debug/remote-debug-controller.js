@@ -31,7 +31,5 @@ module.exports = function RemoteDebugCtrl($scope, $timeout, gettext) {
       $scope.remoteDebugTooltip =
         gettext('Run the following on your command line to debug the device from your Browser')
     }
-
   })
-
 }
