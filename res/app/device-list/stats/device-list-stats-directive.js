@@ -73,7 +73,6 @@ module.exports = function DeviceListStatsDirective(
       }
 
       function removeListener(device) {
-        var oldStats = mapping[device.serial]
         var newStats = updateStats(device)
 
         scope.counter.total -= 1

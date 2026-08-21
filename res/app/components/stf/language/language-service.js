@@ -11,12 +11,6 @@ module.exports =
       return navigator.language || navigator.userLanguage
     }
 
-    function browserToSupportedLang(lang) {
-      //supportedLanguages.
-
-      //return lang.replace(/([A-Za-z]{2})(-|_)?([A-Za-z]{0,4})/gm, '$1')
-    }
-
     function isSupported(lang) {
       return !!supportedLanguages[lang]
     }

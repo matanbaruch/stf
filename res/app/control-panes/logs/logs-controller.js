@@ -1,7 +1,6 @@
 module.exports = function LogsCtrl($scope, $rootScope, $routeParams, LogcatService) {
 
   var deviceSerial = $routeParams.serial
-  var cleanDevice = (window.location.href).split('/').pop()
   function cleanDeviceSettings() {
     if (Object.keys($rootScope).includes('LogcatService')) {
       LogcatService.deviceEntries = $rootScope.LogcatService.deviceEntries

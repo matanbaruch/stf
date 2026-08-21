@@ -9,7 +9,7 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
 
   $scope.groupDevices = $scope.groupTracker.devices
 
-  $scope.$on('$locationChangeStart', function(event, next, current) {
+  $scope.$on('$locationChangeStart', function() {
     $scope.LogcatService = LogcatService
     $rootScope.LogcatService = LogcatService
   })

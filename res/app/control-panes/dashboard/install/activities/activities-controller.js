@@ -91,7 +91,7 @@ module.exports = function ActivitiesCtrl($scope) {
     }
 
     return $scope.control.shell(command)
-      .then(function(result) {
+      .then(function() {
         // console.log(result)
       })
   }

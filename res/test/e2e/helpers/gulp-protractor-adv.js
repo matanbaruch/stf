@@ -129,7 +129,7 @@ var webdriverStandalone = function(opts, cb) {
     stdio: stdio
   })
     .once('close', callback)
-    .on('exit', function(code) {
+    .on('exit', function() {
       if (child) {
         child.kill()
       }

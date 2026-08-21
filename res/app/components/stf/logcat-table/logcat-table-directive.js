@@ -136,7 +136,7 @@ module.exports =
           }
         }
 
-        LogcatService.addFilteredEntriesListener = function(entries) {
+        LogcatService.addFilteredEntriesListener = function() {
           checkLoggerServiceStatus()
         }
 
@@ -175,7 +175,7 @@ module.exports =
           var matchArray = inputValue.match(regex)
           var isTextValid = false
           if (matchArray) {
-            matchArray.forEach(function(item, index) {
+            matchArray.forEach(function(item) {
               if (item === inputValue) {
                 isTextValid = true
                 e.target.style.borderColor = ''

@@ -136,6 +136,8 @@ module.exports = function DeviceServiceFactory($http, socket, EnhanceDeviceServi
       **/
     }
 
+    // the only call site is the commented-out block above, kept with it
+    // eslint-disable-next-line no-unused-vars
     function fetch(data) {
       deviceService.load(data.serial)
         .then(function(device) {

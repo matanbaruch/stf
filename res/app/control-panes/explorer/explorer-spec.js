@@ -2,7 +2,7 @@ describe('FsCtrl', function() {
 
   beforeEach(angular.mock.module(require('./').name))
 
-  var scope, ctrl
+  var scope
 
   beforeEach(inject(function($rootScope, $controller, $q) {
     scope = $rootScope.$new()
@@ -13,7 +13,7 @@ describe('FsCtrl', function() {
         return $q.resolve({body: []})
       }
     }
-    ctrl = $controller('ExplorerCtrl', {$scope: scope})
+    $controller('ExplorerCtrl', {$scope: scope})
   }))
 
   it('should ...', inject(function() {

@@ -48,7 +48,6 @@ module.exports = function GroupsCtrl(
     'groups.subscribed,' +
     'groups.quotas.allocated,' +
     'groups.quotas.consumed'
-  var rootGroupId
 
   function publishDevice(device) {
     if (!device.model) {
@@ -162,9 +161,6 @@ module.exports = function GroupsCtrl(
     if (typeof $scope.groupsEnv[group.id] === 'undefined') {
       $scope.groupsEnv[group.id] = {}
       initAvailableGroupDevices(group, [], {})
-      if (group.privilege === 'root') {
-        rootGroupId = group.id
-      }
     }
     return group
   }
@@ -833,7 +829,7 @@ module.exports = function GroupsCtrl(
           cachedGroupsClass[id] = response.data.group.class
           return cachedGroupsClass[id]
         })
-        .catch(function(error) {
+        .catch(function() {
           return false
         })
       }
