@@ -88,9 +88,9 @@ module.exports =
 
     $scope.$watch('device.state', function(newValue, oldValue) {
       if (newValue !== oldValue) {
-/** ************* fix bug: it seems automation state was forgotten ? *************/
+/* ************* fix bug: it seems automation state was forgotten ? ************* */
         if (oldValue === 'using' || oldValue === 'automation') {
-/** ****************************************************************************/
+/******************************************************************************/
           FatalMessageService.open($scope.device, false)
         }
       }

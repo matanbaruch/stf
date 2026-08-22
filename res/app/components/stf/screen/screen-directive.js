@@ -141,8 +141,7 @@ module.exports = function DeviceScreenDirective(
               return adjustBoundedSize(h, w)
             case 0:
             case 180:
-
-              /* falls through */
+              // falls through
             default:
               return adjustBoundedSize(w, h)
             }
@@ -310,7 +309,7 @@ module.exports = function DeviceScreenDirective(
                 })
 
                 var img = imagePool.next()
-                var url
+                var url = URL.createObjectURL(blob)
 
                 img.onload = function() {
                   updateImageArea(this)
@@ -346,7 +345,6 @@ module.exports = function DeviceScreenDirective(
                   url = null
                 }
 
-                url = URL.createObjectURL(blob)
                 img.src = url
               }
             }

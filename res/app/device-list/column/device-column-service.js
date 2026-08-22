@@ -27,11 +27,11 @@ function zeroPadTwoDigit(digit) {
 }
 
 function compareIgnoreCase(a, b) {
-/** *** fix bug: cast to String for Safari compatibility ****/
+/* **** fix bug: cast to String for Safari compatibility **** */
   var la = (String(a) || '').toLowerCase()
   var lb = (String(b) || '').toLowerCase()
 
-/** *********************************************************/
+/***********************************************************/
   if (la === lb) {
     return 0
   }
@@ -41,11 +41,11 @@ function compareIgnoreCase(a, b) {
 }
 
 function filterIgnoreCase(a, filterValue) {
-/** *** fix bug: cast to String for Safari compatibility ****/
+/* **** fix bug: cast to String for Safari compatibility **** */
   var va = (String(a) || '').toLowerCase()
   var vb = String(filterValue).toLowerCase()
 
-/** *********************************************************/
+/***********************************************************/
   return va.indexOf(vb) !== -1
 }
 

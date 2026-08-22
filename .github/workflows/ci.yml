@@ -473,7 +473,10 @@ jobs:
           # applied yet. Wait for the queue to drain, then set the mode directly
           # if the node is still not writable.
           sudo udevadm settle --timeout=30 || true
-          test -w /dev/kvm || sudo chmod 666 /dev/kvm
+          test -w /dev/kvm || {
+            echo "::warning::udev kvm rule did not apply, falling back to chmod"
+            sudo chmod 666 /dev/kvm
+          }
           ls -l /dev/kvm
           test -w /dev/kvm
 
