@@ -10,8 +10,6 @@
  * @constructor
  */
 var Renderer = function(gl) {
-  // block-start comment: the blank line this wants is a padded-blocks error
-  // eslint-disable-next-line lines-around-comment
   /**
    * The GL context.
    * @type {WebGLRenderingContext}

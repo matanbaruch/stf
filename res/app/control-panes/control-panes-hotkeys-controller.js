@@ -87,8 +87,6 @@ module.exports =
       }
     }
 
-    // injected angular service, the name is fixed by its registration
-    // eslint-disable-next-line new-cap
     ScopedHotkeysService($scope, [
       // ['shift+up', gettext('Previous Device'), actions.previousDevice],
       // ['shift+down', gettext('Next Device'), actions.nextDevice],

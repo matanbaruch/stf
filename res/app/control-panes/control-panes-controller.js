@@ -88,12 +88,8 @@ module.exports =
 
     $scope.$watch('device.state', function(newValue, oldValue) {
       if (newValue !== oldValue) {
-// block-start comment: the blank line this wants is a padded-blocks error
-// eslint-disable-next-line lines-around-comment
 /** ************* fix bug: it seems automation state was forgotten ? *************/
         if (oldValue === 'using' || oldValue === 'automation') {
-// block-start comment: the blank line this wants is a padded-blocks error
-// eslint-disable-next-line lines-around-comment
 /** ****************************************************************************/
           FatalMessageService.open($scope.device, false)
         }

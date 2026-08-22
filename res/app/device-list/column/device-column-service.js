@@ -27,8 +27,6 @@ function zeroPadTwoDigit(digit) {
 }
 
 function compareIgnoreCase(a, b) {
-// block-start comment: the blank line this wants is a padded-blocks error
-// eslint-disable-next-line lines-around-comment
 /** *** fix bug: cast to String for Safari compatibility ****/
   var la = (String(a) || '').toLowerCase()
   var lb = (String(b) || '').toLowerCase()
@@ -43,8 +41,6 @@ function compareIgnoreCase(a, b) {
 }
 
 function filterIgnoreCase(a, filterValue) {
-// block-start comment: the blank line this wants is a padded-blocks error
-// eslint-disable-next-line lines-around-comment
 /** *** fix bug: cast to String for Safari compatibility ****/
   var va = (String(a) || '').toLowerCase()
   var vb = String(filterValue).toLowerCase()
