@@ -1,0 +1,17 @@
+# Categories for the notes GitHub generates for a release. Only dependabot
+# applies labels here, so anything else falls through to the catch-all rather
+# than sitting in an empty section.
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: Changes
+      labels:
+        - '*'
+      exclude:
+        labels:
+          - dependencies
+    - title: Dependencies
+      labels:
+        - dependencies

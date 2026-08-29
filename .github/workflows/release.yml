@@ -1,0 +1,143 @@
+#
+# Cuts a release: bumps package.json, writes the CHANGELOG entry, tags, and
+# publishes the GitHub release with generated notes.
+#
+# It deliberately publishes nothing itself. Semaphore owns npm and Docker Hub
+# and fires on the tag (.semaphore/semaphore.yml promotes on `tag =~ '.*'`), so
+# all this has to get right is that package.json is bumped *before* the tag
+# exists. v3.7.7 was tagged six days ahead of its bump commit and never reached
+# npm as a result; doing both in one job is what stops that recurring.
+#
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, without the v prefix (e.g. 3.8.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: '.nvmrc'
+
+      # Everything that can be known before writing anything is checked here, so
+      # a bad input fails without leaving a half-cut release behind.
+      - name: Check the version is releasable
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          case "$VERSION" in
+            v*) echo "::error::pass the version without the v prefix, got $VERSION"; exit 1;;
+          esac
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::$VERSION is not a three part version"
+            exit 1
+          fi
+
+          CURRENT=$(node -p 'require("./package.json").version')
+          echo "current=$CURRENT requested=$VERSION"
+          node -e '
+            var a = process.argv[1].split(".").map(Number)
+            var b = process.argv[2].split(".").map(Number)
+            for (var i = 0; i < 3; i++) {
+              if (b[i] > a[i]) process.exit(0)
+              if (b[i] < a[i]) break
+            }
+            console.error("::error::" + process.argv[2] + " is not greater than " + process.argv[1])
+            process.exit(1)
+          ' "$CURRENT" "$VERSION"
+
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::tag v$VERSION already exists"
+            exit 1
+          fi
+
+          # The npm half of the Semaphore promotion publishes whatever
+          # package.json says, and npm refuses a version it already has. Catching
+          # it here beats a red deploy pipeline after the tag is public.
+          if npm view "@devicefarmer/stf@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::@devicefarmer/stf@$VERSION is already published to npm"
+            exit 1
+          fi
+
+      - name: Generate the release notes
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PREVIOUS=$(git tag --sort=-creatordate | head -1)
+          echo "previous tag: ${PREVIOUS:-none}"
+
+          if [ -n "$PREVIOUS" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -X POST \
+              -f tag_name="v$VERSION" \
+              -f target_commitish="$GITHUB_SHA" \
+              -f previous_tag_name="$PREVIOUS" \
+              --jq .body > notes.md
+          else
+            gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -X POST \
+              -f tag_name="v$VERSION" \
+              -f target_commitish="$GITHUB_SHA" \
+              --jq .body > notes.md
+          fi
+          cat notes.md
+
+      - name: Bump the version and the changelog
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          CURRENT=$(node -p 'require("./package.json").version')
+          node -e '
+            var fs = require("fs")
+            var file = "package.json"
+            var raw = fs.readFileSync(file, "utf8")
+            var next = raw.replace(/"version": "[^"]+"/, "\"version\": \"" + process.argv[1] + "\"")
+            if (next === raw) {
+              console.error("::error::could not rewrite the version field")
+              process.exit(1)
+            }
+            fs.writeFileSync(file, next)
+          ' "$VERSION"
+          node .github/scripts/changelog.js CHANGELOG.md "$VERSION" "$(date -u +%Y-%m-%d)" notes.md
+          git diff --stat
+
+      - name: Commit, tag and publish
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CURRENT=$(git show HEAD:package.json | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).version')
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json CHANGELOG.md
+          git commit -s -m "Bump version from $CURRENT to $VERSION"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
+          # Tag only after the bump is on the branch, so the commit Semaphore
+          # builds for the tag is the one carrying the new version.
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+
+          gh release create "v$VERSION" --title "v$VERSION" --notes-file notes.md
+          rm -f notes.md
