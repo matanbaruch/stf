@@ -26,21 +26,6 @@
     "it. See doc/ci.md."
   ],
   "include": [
-    {"android": "5.0", "api": "21", "target": "default", "arch": "x86", "boot": 900},
-    {"android": "5.1", "api": "22", "target": "default", "arch": "x86", "boot": 900},
-    {"android": "6.0", "api": "23", "target": "default", "arch": "x86", "boot": 900},
-    {"android": "7", "api": "24", "target": "default", "arch": "x86", "boot": 900},
-    {"android": "7.1", "api": "25", "target": "default", "arch": "x86", "boot": 900},
-    {"android": "8", "api": "26", "target": "default", "arch": "x86_64", "boot": 900},
-    {"android": "8.1", "api": "27", "target": "default", "arch": "x86_64", "boot": 900},
-    {"android": "9", "api": "28", "target": "default", "arch": "x86_64", "boot": 900},
-    {"android": "10", "api": "29", "target": "default", "arch": "x86_64", "boot": 900},
-    {"android": "11", "api": "30", "target": "default", "arch": "x86_64", "boot": 900},
-    {"android": "12", "api": "31", "target": "default", "arch": "x86_64", "boot": 900},
-    {"android": "12L", "api": "32", "target": "default", "arch": "x86_64", "boot": 720},
-    {"android": "13", "api": "33", "target": "default", "arch": "x86_64", "boot": 720},
-    {"android": "14", "api": "34", "target": "default", "arch": "x86_64", "boot": 720},
-    {"android": "15", "api": "35", "target": "default", "arch": "x86_64", "boot": 720},
-    {"android": "16", "api": "36", "target": "default", "arch": "x86_64", "boot": 720}
+    {"android": "17", "api": "37.2", "target": "google_apis_ps16k", "arch": "x86_64", "boot": 900}
   ]
 }

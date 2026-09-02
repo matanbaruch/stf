@@ -521,7 +521,7 @@ jobs:
             echo "available=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          "$SDKMANAGER" --list > sdk-packages.txt 2>sdk-packages.err || true
+          "$SDKMANAGER" --list --channel=2 > sdk-packages.txt 2>sdk-packages.err || true
           # Fail open. An sdkmanager that errors out produces an empty listing,
           # and treating that as "image not published" would let every leg
           # self-skip and the whole matrix report green with zero coverage.
@@ -559,6 +559,7 @@ jobs:
         with:
           api-level: ${{ matrix.api }}
           target: ${{ matrix.target }}
+          channel: dev
           arch: ${{ matrix.arch }}
           # Without a device profile avdmanager builds a 320x640 160dpi screen,
           # which is smaller than the browser's device pane, so minicap has to
