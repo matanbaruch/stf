@@ -7,7 +7,8 @@ name: GPU probe
 # push-triggered because this file does not exist on the default branch, so
 # workflow_dispatch cannot reach it.
 on:
-  push:
+  # push trigger removed: this ran its course, and a push should not re-fire
+  # seven emulator legs. Dispatch it explicitly if needed.
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,86 @@
+name: ARM64 probe
+
+# Throwaway diagnostic: is an Android emulator even possible on GitHub's arm64
+# Linux runners? Reports facts only and never fails the run.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arm64:
+    name: arm64 capability probe
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - name: Host CPU
+        run: |
+          set +e
+          echo "uname -m : $(uname -m)"
+          echo "uname -a : $(uname -a)"
+          echo "--- lscpu (head -20) ---"
+          lscpu 2>&1 | head -20
+          echo "--- /proc/cpuinfo ---"
+          echo "grep -c . /proc/cpuinfo = $(grep -c . /proc/cpuinfo)"
+          echo "processor count        = $(grep -c '^processor' /proc/cpuinfo)"
+          exit 0
+
+      - name: Nested virt / KVM
+        run: |
+          set +e
+          echo "--- ls -l /dev/kvm ---"
+          ls -l /dev/kvm 2>&1
+          if [ -e /dev/kvm ]; then
+            echo "/dev/kvm EXISTS"
+            if [ -w /dev/kvm ]; then echo "test -w /dev/kvm : WRITABLE"; else echo "test -w /dev/kvm : NOT writable"; fi
+          else
+            echo "/dev/kvm ABSENT"
+          fi
+          echo "--- kvm-ok ---"
+          if command -v kvm-ok >/dev/null 2>&1; then kvm-ok 2>&1; else echo "kvm-ok not installed"; fi
+          echo "--- kvm kernel modules ---"
+          lsmod 2>/dev/null | grep -i kvm || echo "no kvm module loaded"
+          ls -d /sys/module/kvm* 2>&1 || echo "no /sys/module/kvm*"
+          exit 0
+
+      - name: sdkmanager listing for the emulator package
+        run: |
+          set +e
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKM="$(ls -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
+          echo "sdkmanager path: ${SDKM:-<none found>}"
+          [ -z "$SDKM" ] && { echo "NO sdkmanager on this image"; exit 0; }
+          echo "--- sdkmanager --list, emulator lines ---"
+          "$SDKM" --list 2>&1 | grep -iE '^ *emulator|emulator ' | head -20
+          echo "(exit ${PIPESTATUS[0]})"
+          exit 0
+
+      - name: sdkmanager --install emulator (allowed to fail)
+        run: |
+          set +e
+          SDKM="$(ls -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
+          [ -z "$SDKM" ] && { echo "no sdkmanager"; exit 0; }
+          echo "--- installing ---"
+          "$SDKM" --install emulator 2>&1 | tail -30
+          echo "install exit code: ${PIPESTATUS[0]}"
+          exit 0
+
+      - name: Is there a runnable emulator binary?
+        run: |
+          set +e
+          E="${ANDROID_HOME:-/usr/local/lib/android/sdk}/emulator/emulator"
+          echo "--- ls ---"
+          ls -l "$E" 2>&1
+          echo "--- emulator dir ---"
+          ls "${ANDROID_HOME:-/usr/local/lib/android/sdk}/emulator" 2>&1 | head -15
+          echo "--- source.properties ---"
+          cat "${ANDROID_HOME:-/usr/local/lib/android/sdk}/emulator/source.properties" 2>&1 | head
+          echo "--- file(1) on the binary ---"
+          file "$E" 2>&1
+          echo "--- emulator -version (verbatim error if any) ---"
+          "$E" -version 2>&1 | head -10
+          echo "emulator -version exit code: $?"
+          exit 0
