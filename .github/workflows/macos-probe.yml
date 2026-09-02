@@ -1,0 +1,87 @@
+name: macOS arm64 probe
+
+# Stage 1 only: can a GitHub-hosted Apple Silicon runner host an Android
+# emulator at all? Facts only, never fails the run. Standard macos-15 label -
+# NOT an -xlarge larger runner, which bills even on public repos.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS arm64 capability probe
+    runs-on: macos-15
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - name: Host identity
+        run: |
+          set +e
+          echo "uname -m : $(uname -m)"
+          echo "uname -a : $(uname -a)"
+          echo "--- sw_vers ---"; sw_vers 2>&1
+          echo "--- cpu ---"
+          sysctl -n machdep.cpu.brand_string 2>&1
+          echo "ncpu = $(sysctl -n hw.ncpu 2>&1)  mem = $(sysctl -n hw.memsize 2>&1)"
+          exit 0
+
+      - name: Hypervisor.framework support (the macOS KVM equivalent)
+        run: |
+          set +e
+          echo "--- sysctl kern.hv_support ---"
+          sysctl kern.hv_support 2>&1
+          echo "(1 = Hypervisor.framework available)"
+          echo "--- kern.hv_vmm_present ---"
+          sysctl kern.hv_vmm_present 2>&1
+          exit 0
+
+      - name: Preinstalled Android SDK?
+        run: |
+          set +e
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          echo "--- ls \$SDK ---"; ls "$SDK" 2>&1 | head -20
+          echo "--- cmdline-tools ---"; ls -d "$SDK"/cmdline-tools/*/bin/sdkmanager 2>&1
+          echo "--- preinstalled emulator dir ---"; ls "$SDK/emulator" 2>&1 | head -10
+          exit 0
+
+      - name: sdkmanager emulator listing
+        run: |
+          set +e
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDKM="$(ls -d "$SDK"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
+          echo "sdkmanager: ${SDKM:-<none>}"
+          [ -z "$SDKM" ] && { echo "NO sdkmanager"; exit 0; }
+          "$SDKM" --list 2>&1 | grep -iE '^ *emulator' | head -10
+          exit 0
+
+      - name: Install emulator and prove which host build landed
+        run: |
+          set +e
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDKM="$(ls -d "$SDK"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
+          [ -n "$SDKM" ] && { yes | "$SDKM" --install emulator 2>&1 | tail -15; echo "install exit: ${PIPESTATUS[1]}"; }
+          E="$SDK/emulator/emulator"
+          echo "--- source.properties ---"; cat "$SDK/emulator/source.properties" 2>&1 | head
+          echo "--- file(1) on the binary (expect arm64 Mach-O) ---"
+          file "$E" 2>&1
+          echo "--- lipo -archs ---"; lipo -archs "$E" 2>&1
+          echo "--- emulator -version (verbatim) ---"
+          "$E" -version 2>&1 | head -8
+          exit 0
+
+      - name: Which arm64-v8a Android 17 images are published
+        run: |
+          set +e
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDKM="$(ls -d "$SDK"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
+          [ -z "$SDKM" ] && exit 0
+          echo "--- stable channel, android-37 arm64-v8a ---"
+          "$SDKM" --list 2>&1 | grep -E 'system-images;android-37[^;]*;[^;]*;arm64-v8a' | head -10
+          echo "--- dev channel (--channel=2) ---"
+          "$SDKM" --list --channel=2 2>&1 | grep -E 'system-images;android-37[^;]*;[^;]*;arm64-v8a' | head -10
+          exit 0

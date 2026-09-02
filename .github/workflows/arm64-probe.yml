@@ -3,7 +3,7 @@ name: ARM64 probe
 # Throwaway diagnostic: is an Android emulator even possible on GitHub's arm64
 # Linux runners? Reports facts only and never fails the run.
 on:
-  push:
+  # push trigger removed: this probe has run. Dispatch explicitly if needed.
   workflow_dispatch:
 
 permissions:
