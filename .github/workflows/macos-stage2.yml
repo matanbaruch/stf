@@ -5,7 +5,7 @@ name: macOS arm64 stage 2
 # label, to find which host boots it inside a 10 minute budget.
 # Standard labels only - never an -xlarge larger runner, which bills on public repos.
 on:
-  push:
+  # push trigger removed: this probe has run. Dispatch explicitly if needed.
   workflow_dispatch:
 
 permissions:
