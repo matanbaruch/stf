@@ -2,14 +2,17 @@ name: cmdline-tools probe
 
 # Stage 1 + the AVD half of stage 2. No emulator boot, so this is cheap.
 # Hypothesis (upstream issuetracker 546200928): outdated cmdline-tools cannot
-# parse a dotted API level like 37.1, so avdmanager writes target=android-0 into
-# the AVD, which mis-configures gfxstream and leads to the mapper.ranchu abort.
+# parse a dotted API level like 37.1, so avdmanager writes target=android-0,
+# which mis-configures gfxstream and leads to the mapper.ranchu SIGABRT.
 on:
   push:
   workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  ANDROID_AVD_HOME: /home/runner/.android/avd
 
 jobs:
   avd-target:
@@ -23,94 +26,64 @@ jobs:
           set +e
           SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           echo "ANDROID_HOME=$SDK"
-          echo "--- every cmdline-tools dir and its Pkg.Revision ---"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME"
+          echo "HOME=$HOME"
           for d in "$SDK"/cmdline-tools/*/; do
-            [ -d "$d" ] || continue
-            printf '%-70s %s\n' "$d" "$(grep -m1 '^Pkg.Revision' "$d/source.properties" 2>/dev/null || echo '<no source.properties>')"
+            printf '%-64s %s\n' "$d" "$(grep -m1 '^Pkg.Revision' "$d/source.properties" 2>/dev/null)"
           done
-          echo "--- which avdmanager is on PATH ---"
-          command -v avdmanager || echo "avdmanager not on PATH"
           exit 0
 
-      - name: Install the system images we need
+      - name: Install the system images
         timeout-minutes: 20
         run: |
           set +e
           SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          SDKM="$(ls -d "$SDK"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
-          echo "using sdkmanager: $SDKM"
+          SDKM="$SDK/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKM" --licenses > /dev/null 2>&1
-          # dotted level (the suspect) and an integer level (the control)
-          yes | "$SDKM" --install "system-images;android-37.1;google_apis_ps16k;x86_64" 2>&1 | tail -3
-          yes | "$SDKM" --install "system-images;android-36;default;x86_64" 2>&1 | tail -3
+          yes | "$SDKM" --install "system-images;android-37.1;google_apis_ps16k;x86_64" > /dev/null 2>&1
+          echo "37.1 install rc=$?"
+          yes | "$SDKM" --install "system-images;android-36;default;x86_64" > /dev/null 2>&1
+          echo "36 install rc=$?"
           exit 0
 
-      - name: STAGE 1 - create AVDs with the SHIPPED tools and read target=
+      - name: STAGE 1 - AVDs with the SHIPPED tools (rev 12.0)
         run: |
           set +e
-          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          AVDM="$SDK/cmdline-tools/latest/bin/avdmanager"
-          echo "avdmanager used: $AVDM"
-          echo "its package revision: $(grep -m1 '^Pkg.Revision' "$SDK/cmdline-tools/latest/source.properties" 2>/dev/null)"
-          for spec in "old371:system-images;android-37.1;google_apis_ps16k;x86_64" \
-                      "old36:system-images;android-36;default;x86_64"; do
-            n="${spec%%:*}"; pkg="${spec#*:}"
-            echo "=== creating AVD $n from $pkg ==="
-            echo no | "$AVDM" create avd --force -n "$n" --package "$pkg" 2>&1 | tail -3
-            for f in "$HOME/.android/avd/$n.ini" "$HOME/.android/avd/$n.avd/config.ini"; do
-              [ -f "$f" ] && { echo "--- $f ---"; grep -E '^target=|^image\.sysdir|^AvdId|^abi\.type|^tag\.id' "$f" 2>/dev/null; }
-            done
-          done
+          bash .github/scripts/avd-target.sh old
           exit 0
 
-      - name: STAGE 2 - show the latest-2 sibling gotcha, then fix in place
+      - name: Update cmdline-tools in place (beat the latest-2 trap)
         timeout-minutes: 15
         run: |
           set +e
           SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          SDKM="$SDK/cmdline-tools/latest/bin/sdkmanager"
-          echo "=== A. sdkmanager --install 'cmdline-tools;latest' (the documented trap) ==="
-          yes | "$SDKM" --install "cmdline-tools;latest" 2>&1 | tail -5
-          echo "--- cmdline-tools dirs AFTER that install ---"
-          for d in "$SDK"/cmdline-tools/*/; do
-            printf '%-70s %s\n' "$d" "$(grep -m1 '^Pkg.Revision' "$d/source.properties" 2>/dev/null)"
-          done
-          echo
-          echo "=== B. in-place replacement of cmdline-tools/latest (what a ci.yml fix would do) ==="
-          # The action hardcodes \$ANDROID_HOME/cmdline-tools/latest on PATH
+          # The action hardcodes $ANDROID_HOME/cmdline-tools/latest on PATH
           # (sdk-installer.ts:41) and calls bare `avdmanager`, so a sibling
-          # latest-2 would be ignored. Replace `latest` itself.
+          # latest-2 from `sdkmanager --install cmdline-tools;latest` would be
+          # ignored. Replace `latest` itself.
           cd /tmp || exit 0
           curl -fsSLo ct.zip https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip
-          echo "download rc=$?  size=$(stat -c%s ct.zip 2>/dev/null)"
+          echo "download rc=$? size=$(stat -c%s ct.zip 2>/dev/null)"
           rm -rf /tmp/ctx && mkdir -p /tmp/ctx && unzip -q ct.zip -d /tmp/ctx
           rm -rf "$SDK/cmdline-tools/latest"
           mv /tmp/ctx/cmdline-tools "$SDK/cmdline-tools/latest"
-          echo "--- cmdline-tools dirs after in-place replace ---"
           for d in "$SDK"/cmdline-tools/*/; do
-            printf '%-70s %s\n' "$d" "$(grep -m1 '^Pkg.Revision' "$d/source.properties" 2>/dev/null)"
+            printf '%-64s %s\n' "$d" "$(grep -m1 '^Pkg.Revision' "$d/source.properties" 2>/dev/null)"
           done
           exit 0
 
-      - name: STAGE 2 - recreate AVDs with the NEW tools and read target=
+      - name: STAGE 2 - AVDs with the NEW tools (rev 23.0)
         run: |
           set +e
-          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          AVDM="$SDK/cmdline-tools/latest/bin/avdmanager"
-          echo "avdmanager used: $AVDM"
-          echo "its package revision: $(grep -m1 '^Pkg.Revision' "$SDK/cmdline-tools/latest/source.properties" 2>/dev/null)"
-          for spec in "new371:system-images;android-37.1;google_apis_ps16k;x86_64" \
-                      "new36:system-images;android-36;default;x86_64"; do
-            n="${spec%%:*}"; pkg="${spec#*:}"
-            echo "=== creating AVD $n from $pkg ==="
-            echo no | "$AVDM" create avd --force -n "$n" --package "$pkg" 2>&1 | tail -3
-            for f in "$HOME/.android/avd/$n.ini" "$HOME/.android/avd/$n.avd/config.ini"; do
-              [ -f "$f" ] && { echo "--- $f ---"; grep -E '^target=|^image\.sysdir|^AvdId|^abi\.type|^tag\.id' "$f" 2>/dev/null; }
-            done
-          done
-          echo
-          echo "=== SIDE BY SIDE: target= for every AVD created ==="
-          for n in old371 old36 new371 new36; do
-            printf '  %-8s %s\n' "$n" "$(grep -m1 '^target=' "$HOME/.android/avd/$n.ini" 2>/dev/null || echo '<none>')"
+          bash .github/scripts/avd-target.sh new
+          exit 0
+
+      - name: VERDICT - target= side by side
+        run: |
+          set +e
+          echo "AVD                      target="
+          for n in old-371 old-36 new-371 new-36; do
+            f="$ANDROID_AVD_HOME/$n.ini"
+            printf '%-24s %s\n' "$n" "$(grep -m1 '^target=' "$f" 2>/dev/null || echo '<no ini>')"
           done
           exit 0
