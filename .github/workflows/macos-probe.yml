@@ -4,7 +4,7 @@ name: macOS arm64 probe
 # emulator at all? Facts only, never fails the run. Standard macos-15 label -
 # NOT an -xlarge larger runner, which bills even on public repos.
 on:
-  push:
+  # push trigger removed: stage 1 has run. Dispatch explicitly if needed.
   workflow_dispatch:
 
 permissions:

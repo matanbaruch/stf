@@ -1,0 +1,82 @@
+name: macOS arm64 stage 2
+
+# Stage 2: boot arm64-v8a Android 17 images on an Apple Silicon runner and count
+# SurfaceFlinger aborts. Stage 1 proved the runner has a real arm64 emulator
+# binary (Mach-O arm64, 37.1.11, -version works).
+# Standard macos-15 label only - never an -xlarge larger runner.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  boot:
+    name: ${{ matrix.id }}
+    runs-on: macos-15
+    timeout-minutes: 60
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 37.0 plain google_apis, stable channel, stable emulator 37.1.11.
+          - {id: "M1-370-arm64-swiftshader", api: "37.0", target: "google_apis",       channel: "stable", emubuild: "",         gpu: "swiftshader_indirect"}
+          # 37.2 GA needs emulator >= 37.2.7; 37.1.11 hung on SurfaceFlingerAIDL locally.
+          - {id: "M2-372ga-arm64-swiftshader", api: "37.2", target: "google_apis_ps16k", channel: "dev",  emubuild: "16195039", gpu: "swiftshader_indirect"}
+          # Same image under -gpu auto, in case swiftshader is the limiting factor headless.
+          - {id: "M3-372ga-arm64-auto",       api: "37.2", target: "google_apis_ps16k", channel: "dev",  emubuild: "16195039", gpu: "auto"}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Host + HVF
+        run: |
+          set +e
+          echo "uname -m : $(uname -m)"; sw_vers 2>&1
+          echo "ncpu=$(sysctl -n hw.ncpu) mem=$(sysctl -n hw.memsize)"
+          sysctl kern.hv_vmm_present 2>&1
+          df -h / 2>&1 | tail -2
+          exit 0
+
+      - name: Boot the emulator and read logcat
+        id: emu
+        continue-on-error: true
+        timeout-minutes: 50
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          LEG_ID: ${{ matrix.id }}
+          LEG_API: ${{ matrix.api }}
+          LEG_TARGET: ${{ matrix.target }}
+          LEG_GPU: ${{ matrix.gpu }}
+          LEG_EXTRA: "arm64-v8a host=macos-15"
+        with:
+          api-level: ${{ matrix.api }}
+          target: ${{ matrix.target }}
+          arch: arm64-v8a
+          channel: ${{ matrix.channel }}
+          emulator-build: ${{ matrix.emubuild }}
+          profile: pixel_2
+          cores: 2
+          # The runner has ~7.5G total, so 4096M as used by the x86_64 CI legs
+          # leaves little headroom. 3072M is ample for Android 17 to boot.
+          ram-size: 3072M
+          emulator-boot-timeout: 900
+          disable-animations: false
+          emulator-options: >-
+            -no-window -gpu ${{ matrix.gpu }} -no-snapshot -noaudio
+            -no-boot-anim -camera-back none -camera-front none -verbose
+          script: bash .github/scripts/gpu-probe.sh
+
+      - name: Emulator step outcome
+        if: always()
+        run: echo "emulator step outcome = ${{ steps.emu.outcome }}"
+
+      - name: Upload probe output
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: macos-stage2-${{ matrix.id }}
+          path: out
+          retention-days: 5
+          if-no-files-found: warn
