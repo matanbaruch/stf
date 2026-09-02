@@ -5,7 +5,7 @@ name: cmdline-tools probe
 # parse a dotted API level like 37.1, so avdmanager writes target=android-0,
 # which mis-configures gfxstream and leads to the mapper.ranchu SIGABRT.
 on:
-  push:
+  # push trigger removed: stage 1 has run. Dispatch explicitly if needed.
   workflow_dispatch:
 
 permissions:

@@ -27,6 +27,20 @@ cp "$SDK/emulator/lib/advancedFeatures.ini" "$OUT/advancedFeatures.ini" 2>/dev/n
 note "advancedFeatures.ini GLDMA defaults"
 grep -iE '^ *GLDMA' "$OUT/advancedFeatures.ini" 2>/dev/null || echo "  (no GLDMA lines found)"
 
+# Prove which cmdline-tools built the AVD and what target= it got. This is the
+# whole point of the fixed-tools run: target=android-0 means old tools won.
+for d in "$SDK"/cmdline-tools/*/; do
+  printf 'cmdline-tools %-56s %s\n' "$d" "$(grep -m1 '^Pkg.Revision' "$d/source.properties" 2>/dev/null)"
+done | tee "$OUT/cmdline-tools.txt"
+AVDH="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
+for f in "$AVDH"/*.ini; do
+  [ -f "$f" ] || continue
+  echo "--- $f ---"
+  grep -E '^target=|^path=' "$f" 2>/dev/null
+done | tee "$OUT/avd-ini.txt"
+AVD_TARGET="$(grep -hm1 '^target=' "$AVDH"/*.ini 2>/dev/null | cut -d= -f2)"
+note "AVD target = ${AVD_TARGET:-<unknown>}"
+
 adb wait-for-device
 
 BOOT=no
@@ -104,7 +118,9 @@ cat > "$OUT/result.json" <<JSON
   "sf_starting": ${SFSTART:-0},
   "sf_received_signal": ${SFSIG:-0},
   "display_event_receiver": ${DER:-0},
-  "dumpsys_surfaceflinger": "$DUMPSYS"
+  "dumpsys_surfaceflinger": "$DUMPSYS",
+  "avd_target": "${AVD_TARGET:-unknown}",
+  "cmdline_tools": "$(grep -m1 "^Pkg.Revision" "$SDK/cmdline-tools/latest/source.properties" 2>/dev/null | cut -d= -f2)"
 }
 JSON
 note "result.json"
