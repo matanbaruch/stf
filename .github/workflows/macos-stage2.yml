@@ -15,7 +15,7 @@ jobs:
   boot:
     name: ${{ matrix.id }}
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 120
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -23,10 +23,11 @@ jobs:
         include:
           # 37.0 plain google_apis, stable channel, stable emulator 37.1.11.
           - {id: "M1-370-arm64-swiftshader", api: "37.0", target: "google_apis",       channel: "stable", emubuild: "",         gpu: "swiftshader_indirect"}
+          # Same image under -gpu auto: isolates whether software Vulkan is the
+          # thing making boot so slow on a 3-core VM.
+          - {id: "M2-370-arm64-auto",        api: "37.0", target: "google_apis",       channel: "stable", emubuild: "",         gpu: "auto"}
           # 37.2 GA needs emulator >= 37.2.7; 37.1.11 hung on SurfaceFlingerAIDL locally.
-          - {id: "M2-372ga-arm64-swiftshader", api: "37.2", target: "google_apis_ps16k", channel: "dev",  emubuild: "16195039", gpu: "swiftshader_indirect"}
-          # Same image under -gpu auto, in case swiftshader is the limiting factor headless.
-          - {id: "M3-372ga-arm64-auto",       api: "37.2", target: "google_apis_ps16k", channel: "dev",  emubuild: "16195039", gpu: "auto"}
+          - {id: "M3-372ga-arm64-swiftshader", api: "37.2", target: "google_apis_ps16k", channel: "dev",  emubuild: "16195039", gpu: "swiftshader_indirect"}
     steps:
       - uses: actions/checkout@v5
 
@@ -42,7 +43,7 @@ jobs:
       - name: Boot the emulator and read logcat
         id: emu
         continue-on-error: true
-        timeout-minutes: 50
+        timeout-minutes: 105
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
           LEG_ID: ${{ matrix.id }}
@@ -61,7 +62,7 @@ jobs:
           # The runner has ~7.5G total, so 4096M as used by the x86_64 CI legs
           # leaves little headroom. 3072M is ample for Android 17 to boot.
           ram-size: 3072M
-          emulator-boot-timeout: 900
+          emulator-boot-timeout: 2700
           disable-animations: false
           emulator-options: >-
             -no-window -gpu ${{ matrix.gpu }} -no-snapshot -noaudio
