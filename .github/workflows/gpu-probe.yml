@@ -1,8 +1,8 @@
 name: GPU probe
 
-# Throwaway diagnostic: does a different -gpu mode or emulator binary stop
-# SurfaceFlinger aborting on the Android 17 images? No STF, no rethinkdb, no
-# Playwright - just boot the emulator and read logcat.
+# Throwaway diagnostic for the Android 17 SurfaceFlinger abort
+#   Assertion failed: !rcEnc->featureInfo()->hasReadColorBufferDma
+# No STF, no rethinkdb, no Playwright - boot the emulator and read logcat.
 #
 # push-triggered because this file does not exist on the default branch, so
 # workflow_dispatch cannot reach it.
@@ -24,20 +24,20 @@ jobs:
       max-parallel: 10
       matrix:
         include:
-          # --- 37.2 GA (dev-channel image), gpu sweep on the default emulator ---
-          - {id: "01-ga-swiftshader",       api: "37.2",       channel: "dev",    gpu: "swiftshader_indirect", emubuild: ""}
-          - {id: "02-ga-swangle",           api: "37.2",       channel: "dev",    gpu: "swangle_indirect",     emubuild: ""}
-          - {id: "03-ga-guest",             api: "37.2",       channel: "dev",    gpu: "guest",                emubuild: ""}
-          - {id: "04-ga-auto",              api: "37.2",       channel: "dev",    gpu: "auto",                 emubuild: ""}
-          # --- 37.2 GA on the STABLE emulator binary (37.1.11) : the host-side knob ---
-          - {id: "05-ga-swiftshader-emu15917651", api: "37.2", channel: "dev",    gpu: "swiftshader_indirect", emubuild: "15917651"}
-          - {id: "06-ga-swangle-emu15917651",     api: "37.2", channel: "dev",    gpu: "swangle_indirect",     emubuild: "15917651"}
-          # --- controls ---
-          - {id: "07-beta3-swiftshader",    api: "37.2-beta3", channel: "stable", gpu: "swiftshader_indirect", emubuild: ""}
-          - {id: "08-371-swiftshader",      api: "37.1",       channel: "stable", gpu: "swiftshader_indirect", emubuild: ""}
-          - {id: "09-371-swangle",          api: "37.1",       channel: "stable", gpu: "swangle_indirect",     emubuild: ""}
-          # --- does the NEWER dev emulator fix 37.1? ---
-          - {id: "10-371-swiftshader-emu16195039", api: "37.1", channel: "stable", gpu: "swiftshader_indirect", emubuild: "16195039"}
+          # === Option 1: turn OFF the host GLDMA feature the guest asserts against.
+          # Built on the gpu modes that actually boot GA (guest / auto).
+          - {id: "A0-ga-guest-control",    api: "37.2", target: "google_apis_ps16k", channel: "dev",    gpu: "guest", extra: ""}
+          - {id: "A1-ga-guest-noGLDMA",    api: "37.2", target: "google_apis_ps16k", channel: "dev",    gpu: "guest", extra: "-feature -GLDMA"}
+          - {id: "A2-ga-guest-noGLDMA12",  api: "37.2", target: "google_apis_ps16k", channel: "dev",    gpu: "guest", extra: "-feature -GLDMA,-GLDMA2"}
+          - {id: "A3-ga-auto-noGLDMA",     api: "37.2", target: "google_apis_ps16k", channel: "dev",    gpu: "auto",  extra: "-feature -GLDMA"}
+          # Does the emulator reject an unknown -feature name? Establishes whether
+          # silence on -GLDMA means "accepted" or "ignored".
+          - {id: "A4-ga-guest-bogusfeat",  api: "37.2", target: "google_apis_ps16k", channel: "dev",    gpu: "guest", extra: "-feature -ZZNOTAREALFEATURE"}
+
+          # === Option 2: the 37.0 variant pair. Same SDK level, same channel,
+          # same rev 6, only the mapper variant differs -> isolates ps16k.
+          - {id: "B1-370-plain-swiftshader",  api: "37.0", target: "google_apis",       channel: "stable", gpu: "swiftshader_indirect", extra: ""}
+          - {id: "B2-370-ps16k-swiftshader",  api: "37.0", target: "google_apis_ps16k", channel: "stable", gpu: "swiftshader_indirect", extra: ""}
     steps:
       - uses: actions/checkout@v5
 
@@ -67,22 +67,28 @@ jobs:
         env:
           LEG_ID: ${{ matrix.id }}
           LEG_API: ${{ matrix.api }}
+          LEG_TARGET: ${{ matrix.target }}
           LEG_GPU: ${{ matrix.gpu }}
-          LEG_EMUBUILD: ${{ matrix.emubuild }}
+          LEG_EXTRA: ${{ matrix.extra }}
         with:
           api-level: ${{ matrix.api }}
-          target: google_apis_ps16k
+          target: ${{ matrix.target }}
           arch: x86_64
           channel: ${{ matrix.channel }}
-          emulator-build: ${{ matrix.emubuild }}
           profile: pixel_2
           cores: 2
           ram-size: 4096M
+          # ci.yml uses 6G; keep it so a boot timeout here is comparable to the
+          # real leg rather than a side effect of a smaller userdata partition.
+          disk-size: 6G
           emulator-boot-timeout: 900
           disable-animations: false
+          # -verbose so the emulator dumps its resolved Advanced Feature Flags,
+          # which is the only way to prove -feature actually took effect.
           emulator-options: >-
             -no-window -gpu ${{ matrix.gpu }} -no-snapshot -noaudio
             -no-boot-anim -camera-back none -camera-front none
+            -verbose ${{ matrix.extra }}
           script: bash .github/scripts/gpu-probe.sh
 
       - name: Emulator step outcome
