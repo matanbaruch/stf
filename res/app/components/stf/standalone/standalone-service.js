@@ -89,25 +89,7 @@ module.exports =
         GroupService.kick(device).then(function() {
           $rootScope.$digest()
         })
-
-        // TODO: save coordinates
-        //  $scope.controlWindowWidth = windowOpen.innerWidth
-        //  $scope.controlWindowHeight = windowOpen.innerHeight
-        //  $scope.controlWindowTop = windowOpen.screenTop
-        //  $scope.controlWindowLeft = windowOpen.screenLeft
       }
-
-      // TODO: Resize on-demand
-      // newWindow.onresize = function (e) {
-      //  var windowWidth =  e.target.outerWidth
-      //  var windowHeight =  e.target.outerHeight
-      //
-      //  var newWindowWidth = Math.floor(projected.width * windowHeight / projected.height)
-      //  console.log('newWindowWidth', newWindowWidth)
-      //  console.log('windowWidth', windowWidth)
-      //
-      //  newWindow.resizeTo(newWindowWidth, windowHeight)
-      // }
     }
 
 
