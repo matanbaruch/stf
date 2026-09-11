@@ -25,13 +25,7 @@ module.exports = angular.module('control-panes', [
       .when('/control/:serial', {
         template: require('./control-panes.pug')
         , controller: 'ControlPanesCtrl'
-        // TODO: Move device inviting to resolve
-        // resolve: {
-        //  device
-        //  control
-        // }
       })
-      // TODO: add standalone
       .when('/c/:serial', {
         template: require('./control-panes.pug')
         , controller: 'ControlPanesCtrl'

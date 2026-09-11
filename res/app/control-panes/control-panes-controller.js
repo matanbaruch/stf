@@ -70,9 +70,6 @@ module.exports =
           $scope.device = device
           $scope.control = ControlService.create(device, device.channel)
 
-          // TODO: Change title, flickers too much on Chrome
-          // $rootScope.pageTitle = device.name
-
           SettingsService.set('lastUsedDevice', serial)
 
           return device
