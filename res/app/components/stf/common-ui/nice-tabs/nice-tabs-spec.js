@@ -214,4 +214,133 @@ describe('niceTabs', function() {
       expect(settingsUpdates()).toEqual([])
     })
   })
+
+  describe('direction', function() {
+    var BELOW = '<nice-tabs direction="below" tabs="tabs"></nice-tabs>'
+    var PLAIN = '<nice-tabs tabs="tabs"></nice-tabs>'
+    var SIDEWAYS = '<nice-tabs direction="sideways" tabs="tabs"></nice-tabs>'
+    var FIXTURE = 'nice-tabs-direction-fixture.pug'
+
+    beforeEach(angular.mock.module(require('stf/settings').name))
+    beforeEach(angular.mock.module(require('ui-bootstrap').name))
+    beforeEach(angular.mock.module(require('gettext').name))
+
+    var rootScope, compile, pane, hosts
+
+    beforeEach(inject(function($rootScope, $compile, $templateCache) {
+      rootScope = $rootScope
+      compile = $compile
+      hosts = []
+      $templateCache.put(FIXTURE, '<div style="height: 60px">content</div>')
+    }))
+
+    afterEach(function() {
+      angular.forEach(hosts, function(host) {
+        host.remove()
+      })
+    })
+
+    function render(markup) {
+      var scope = rootScope.$new()
+
+      scope.tabs = [
+        {title: 'One', templateUrl: FIXTURE}
+        , {title: 'Two', templateUrl: FIXTURE}
+      ]
+
+      var host = angular.element(
+        '<div style="position: relative; width: 600px; height: 300px">' +
+        '<div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0">' +
+        '</div></div>'
+      )
+      var element = compile(markup)(scope)
+
+      pane = angular.element(host.children()[0])
+      pane.append(element)
+      angular.element(document.body).append(host)
+      hosts.push(host)
+      rootScope.$digest()
+      return element
+    }
+
+    function styleOf(element, selector) {
+      return window.getComputedStyle(element[0].querySelector(selector))
+    }
+
+    function boxOf(element, selector) {
+      return element[0].querySelector(selector).getBoundingClientRect()
+    }
+
+    function topOf(element, selector) {
+      return boxOf(element, selector).top
+    }
+
+    function tabsetStyle(element) {
+      return window.getComputedStyle(element.children()[0])
+    }
+
+    it('should put the tab strip under the content for direction below', function() {
+      var element = render(BELOW)
+
+      expect(element.hasClass('tabs-below')).toBe(true)
+      expect(tabsetStyle(element).display).toBe('flex')
+      expect(tabsetStyle(element).flexDirection).toBe('column-reverse')
+      expect(topOf(element, '.nav-tabs'))
+        .toBeGreaterThan(topOf(element, '.tab-content'))
+    })
+
+    it('should fill the pane so the strip lands on its bottom edge', function() {
+      var element = render(BELOW)
+      var tabset = element.children()[0].getBoundingClientRect()
+      var bounds = pane[0].getBoundingClientRect()
+      var strip = boxOf(element, '.nav-tabs')
+      var content = boxOf(element, '.tab-content')
+
+      expect(Math.round(tabset.top)).toBe(Math.round(bounds.top))
+      expect(Math.round(tabset.bottom)).toBe(Math.round(bounds.bottom))
+      expect(strip.height).toBeGreaterThan(0)
+      expect(strip.top).toBeGreaterThan(content.bottom - 1)
+      expect(strip.bottom).toBeLessThan(bounds.bottom + 1)
+    })
+
+    it('should keep the content inside the pane it is given', function() {
+      var element = render(BELOW)
+
+      expect(styleOf(element, '.tab-content').overflow).toBe('auto')
+      expect(boxOf(element, '.tab-content').height)
+        .toBeLessThan(pane[0].getBoundingClientRect().height)
+    })
+
+    it('should join the active tab to the content from underneath', function() {
+      var element = render(BELOW)
+      var strip = styleOf(element, '.nav-tabs')
+      var active = styleOf(element, '.nav-tabs > li.active > a')
+
+      expect(strip.borderTopWidth).toBe('1px')
+      expect(strip.borderBottomWidth).toBe('0px')
+      expect(active.borderTopColor).toBe('rgba(0, 0, 0, 0)')
+      expect(active.borderBottomColor).toBe('rgb(221, 221, 221)')
+    })
+
+    it('should leave the tab strip above the content with no direction', function() {
+      var element = render(PLAIN)
+
+      expect(element.hasClass('tabs-below')).toBe(false)
+      expect(tabsetStyle(element).display).toBe('block')
+      expect(styleOf(element, '.nav-tabs').borderTopWidth).toBe('0px')
+      expect(topOf(element, '.nav-tabs'))
+        .toBeLessThan(topOf(element, '.tab-content'))
+    })
+
+    it('should leave the tab strip above the content for any other direction',
+      function() {
+        var element = render(SIDEWAYS)
+
+        expect(element.hasClass('tabs-below')).toBe(false)
+        expect(tabsetStyle(element).display).toBe('block')
+        expect(styleOf(element, '.nav-tabs').borderTopWidth).toBe('0px')
+        expect(topOf(element, '.nav-tabs'))
+          .toBeLessThan(topOf(element, '.tab-content'))
+      })
+  })
 })

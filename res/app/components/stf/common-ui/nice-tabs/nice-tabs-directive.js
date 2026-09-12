@@ -4,7 +4,9 @@ module.exports = function niceTabsDirective(SettingsService) {
     , replace: true
     , template: require('./nice-tabs.pug')
     , link: function(scope, element, attrs) {
-      // TODO: add support for 'direction=below' for below tabs
+      if (attrs.direction === 'below') {
+        element.addClass('tabs-below')
+      }
 
       var key = attrs.key
       var tabs = []
