@@ -3,7 +3,6 @@ import {api, ApiError, csrfHeaders} from './api'
 export interface UploadProgress {
   loaded: number
   total: number
-  percent: number
 }
 
 export function storeUrl<T = any>(type: string, url: string): Promise<T> {
@@ -39,7 +38,6 @@ export function storeFiles<T = any>(
         options.onProgress?.({
           loaded: event.loaded
           , total: event.total
-          , percent: Math.round(event.loaded / event.total * 100)
         })
       }
     }

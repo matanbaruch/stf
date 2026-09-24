@@ -38,8 +38,12 @@ export function QuotasForm({initial, onSave, className}: {
 
   async function save() {
     setSaving(true)
-    await onSave(draft as QuotaValues)
-    setSaving(false)
+    try {
+      await onSave(draft as QuotaValues)
+    }
+    finally {
+      setSaving(false)
+    }
   }
 
   return (

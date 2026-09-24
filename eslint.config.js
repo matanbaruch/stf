@@ -166,7 +166,7 @@ var tsRules = Object.assign({}, rules, {
   , '@typescript-eslint/no-unused-vars': [1, {argsIgnorePattern: '^_', varsIgnorePattern: '^_'
     , caughtErrors: 'none'}]
   , 'react-hooks/rules-of-hooks': 2
-  , 'react-hooks/exhaustive-deps': 0
+  , 'react-hooks/exhaustive-deps': 1
 })
 
 module.exports = [

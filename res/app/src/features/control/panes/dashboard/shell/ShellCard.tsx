@@ -93,7 +93,7 @@ export function ShellCard({control}: {control: Control}) {
         {shell.output && (
           <pre className={`shell-results selectable ${classes.terminalOutput}`}>{shell.output}</pre>
         )}
-        {shell.settled && !shell.output && (
+        {shell.lastCommand !== null && !shell.running && !shell.output && (
           <pre className={`shell-results shell-results-empty ${classes.terminalOutput} ${classes.terminalEmpty}`}>
             {t('No output')}
           </pre>

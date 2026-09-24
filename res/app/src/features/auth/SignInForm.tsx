@@ -1,4 +1,4 @@
-import {useEffect, useState, type FormEvent} from 'react'
+import {useState, type FormEvent} from 'react'
 import {
   Alert
   , Anchor
@@ -17,6 +17,7 @@ import {
 } from '@mantine/core'
 import {IconAlertCircle, IconLock, IconMail, IconUser} from '@tabler/icons-react'
 import {api, ApiError} from '@/core/api'
+import {useContactEmail} from '@/core/contact'
 import {useTranslation} from '@/core/i18n'
 import classes from './SignInForm.module.css'
 
@@ -33,13 +34,7 @@ export function SignInForm({mode}: {mode: Mode}) {
   const [touched, setTouched] = useState({username: false, secret: false})
   const [error, setError] = useState<SignInError>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [contactEmail, setContactEmail] = useState<string | null>(null)
-
-  useEffect(() => {
-    api.get<{contact: {email: string}}>('/auth/contact')
-      .then((response) => setContactEmail(response.contact.email))
-      .catch(() => undefined)
-  }, [])
+  const contactEmail = useContactEmail()
 
   const usernameError = touched.username && !username ?
     t(mode === 'mock' ? 'Please enter your name' : 'Please enter your LDAP username') :

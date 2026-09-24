@@ -66,7 +66,5 @@ export function useTranslation() {
   return useMemo(() => ({
     language
     , t: (msgid: string, params?: TranslateParams) => translate(msgid, params, language)
-    , tn: (count: number, singular: string, plural: string, params?: TranslateParams) =>
-      translatePlural(count, singular, plural, params, language)
   }), [language])
 }

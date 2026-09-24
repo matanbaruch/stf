@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState, type ReactNode} from 'react'
+import {useState, type ReactNode} from 'react'
 import {
   ActionIcon
   , Center
@@ -10,6 +10,7 @@ import {
   , Text
   , Tooltip
 } from '@mantine/core'
+import {useTimeout} from '@mantine/hooks'
 import {
   IconBluetooth
   , IconDeviceMobileVibration
@@ -24,6 +25,7 @@ import {gettext, translate, useTranslation} from '@/core/i18n'
 import {notifyFailure} from '@/ui/notify'
 import {WidgetCard} from '@/ui/WidgetCard'
 import type {PaneProps} from '../../types'
+import {useDeviceValue} from '../use-device-value'
 import classes from './AutomationPane.module.css'
 
 const ringerModes = [
@@ -41,38 +43,6 @@ const readRingerMode = (control: Control) =>
 
 function notifyError(error: unknown) {
   notifyFailure(error, translate('Device Settings'))
-}
-
-function useDeviceValue<T>(control: Control, read: (control: Control) => Promise<T>) {
-  const [value, setValue] = useState<T | null>(null)
-  const [loading, setLoading] = useState(true)
-  const active = useRef(true)
-
-  const reload = useCallback(() => {
-    setLoading(true)
-    read(control)
-      .then((next) => {
-        if (active.current) {
-          setValue(next)
-        }
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (active.current) {
-          setLoading(false)
-        }
-      })
-  }, [control, read])
-
-  useEffect(() => {
-    active.current = true
-    reload()
-    return () => {
-      active.current = false
-    }
-  }, [reload])
-
-  return {value, setValue, loading, reload, active}
 }
 
 function SettingRow({icon, label, children}: {icon: ReactNode, label: string, children: ReactNode}) {
@@ -97,15 +67,13 @@ export function DeviceSettingsCard({control}: Pick<PaneProps, 'control'>) {
   const bluetooth = useDeviceValue(control, readBluetooth)
   const ringer = useDeviceValue(control, readRingerMode)
   const [bluetoothPending, setBluetoothPending] = useState(false)
-  const wifiTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-
-  useEffect(() => () => clearTimeout(wifiTimer.current), [])
+  const wifiRecheck = useTimeout(wifi.reload, 2500)
 
   function toggleWifi(enable: boolean) {
     wifi.setValue(enable)
     control.setWifiEnabled(enable).catch(notifyError)
-    clearTimeout(wifiTimer.current)
-    wifiTimer.current = setTimeout(wifi.reload, 2500)
+    wifiRecheck.clear()
+    wifiRecheck.start()
   }
 
   function toggleBluetooth(enable: boolean) {

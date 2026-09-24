@@ -7,8 +7,9 @@ export interface SettingsDevice {
   operator?: string
   network?: {type?: string, subtype?: string}
   display?: {width?: number, height?: number}
+  displayStr?: string
   manufacturer?: string
-  sdk?: string
+  sdk?: string | number
   abi?: string
   cpuPlatform?: string
   openGLESVersion?: string
@@ -43,13 +44,10 @@ export interface ServerConflict {
   owner: {name: string, email: string}
 }
 
-export const deviceFields = [
-  'serial'
-  , 'model'
+const deviceSettingsFieldList = [
+  'model'
+  , 'serial'
   , 'version'
-  , 'operator'
-  , 'network.type'
-  , 'network.subtype'
   , 'display.height'
   , 'display.width'
   , 'manufacturer'
@@ -61,7 +59,11 @@ export const deviceFields = [
   , 'phone.imei'
   , 'provider.name'
   , 'group.originName'
-].join(',')
+]
+
+export const deviceSettingsFields = deviceSettingsFieldList.join(',')
+
+export const groupDeviceFields = [...deviceSettingsFieldList, 'operator', 'network.type', 'network.subtype'].join(',')
 
 export const userFields = [
   'email'

@@ -33,7 +33,3 @@
 .sortHeader:hover {
   color: var(--mantine-color-text);
 }
-
-.idleSort {
-  opacity: 0.4;
-}

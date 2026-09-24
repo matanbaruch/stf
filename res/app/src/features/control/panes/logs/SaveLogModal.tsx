@@ -1,9 +1,10 @@
 import {useMemo, useState} from 'react'
-import {Button, Group, Select, Stack, Text, Textarea, TextInput, ThemeIcon} from '@mantine/core'
+import {Button, Group, Select, Stack, Text, Textarea, TextInput} from '@mantine/core'
 import {modals} from '@mantine/modals'
 import {IconDeviceFloppy} from '@tabler/icons-react'
 import {saveAs} from 'file-saver'
 import {translate, useTranslation} from '@/core/i18n'
+import {ModalTitle} from '@/ui/modals'
 import {
   formatLogs
   , logExtensions
@@ -86,14 +87,7 @@ function SaveLogForm({serial, entries, onDone}: {
 
 export function openSaveLogModal(serial: string, entries: LogEntry[]): void {
   const id = modals.open({
-    title: (
-      <Group gap='sm'>
-        <ThemeIcon variant='light' radius='xl'>
-          <IconDeviceFloppy size={18} />
-        </ThemeIcon>
-        <Text fw={600}>{translate('Save Logs')}</Text>
-      </Group>
-    )
+    title: <ModalTitle icon={IconDeviceFloppy} title={translate('Save Logs')} />
     , centered: true
     , size: 'lg'
     , children: <SaveLogForm serial={serial} entries={entries} onDone={() => modals.close(id)} />

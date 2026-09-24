@@ -104,12 +104,22 @@ export function DeviceToolbar({device, actions, showScreen, onToggleScreen}: {
         </ActionIcon.Group>
         <ActionIcon.Group>
           <Tooltip label={t('Rotate Left')} position='bottom'>
-            <ActionIcon size='md' variant='default' aria-label={t('Rotate Left')} onClick={actions.rotateRight}>
+            <ActionIcon
+              size='md'
+              variant='default'
+              aria-label={t('Rotate Left')}
+              onClick={() => actions.rotateBy(90)}
+            >
               <IconRotate size={16} />
             </ActionIcon>
           </Tooltip>
           <Tooltip label={t('Rotate Right')} position='bottom'>
-            <ActionIcon size='md' variant='default' aria-label={t('Rotate Right')} onClick={actions.rotateLeft}>
+            <ActionIcon
+              size='md'
+              variant='default'
+              aria-label={t('Rotate Right')}
+              onClick={() => actions.rotateBy(-90)}
+            >
               <IconRotateClockwise size={16} />
             </ActionIcon>
           </Tooltip>

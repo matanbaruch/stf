@@ -1,18 +1,12 @@
 import {notifications} from '@mantine/notifications'
 import type {Control} from '@/core/control'
 import {translate} from '@/core/i18n'
-import {installErrorMessage, installFile, installStateLabels, type Installation} from '@/core/install'
+import {installFailureText, installFile, installStateText, type Installation} from '@/core/install'
 
 let notificationCounter = 0
 
 function progressMessage(installation: Installation): string {
-  const label = installStateLabels[installation.state]
-  return `${label ? translate(label) : installation.state} (${installation.progress}%)`
-}
-
-function failureMessage(code: string): string {
-  const message = translate(installErrorMessage(code))
-  return message === code ? message : `${message} (${code})`
+  return `${installStateText(installation.state)} (${installation.progress}%)`
 }
 
 export function installDroppedFiles(control: Control, files: File[]): Promise<void> {
@@ -46,7 +40,7 @@ export function installDroppedFiles(control: Control, files: File[]): Promise<vo
       , autoClose: 8000
       , withCloseButton: true
       , color: 'red'
-      , message: failureMessage(String(installation.error))
+      , message: installFailureText(String(installation.error))
     })
   })
 }

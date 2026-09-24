@@ -21,7 +21,7 @@ import {useTranslation} from '@/core/i18n'
 import {mailTo} from '@/ui/mail'
 import {Pager, usePaged} from '@/ui/Pager'
 import {searchFilter} from '@/ui/paging'
-import {sortKey} from './columns'
+import {sortKey} from '@/ui/table-model'
 import {groupDevicesKey, groupUsersKey} from './use-view-groups'
 import classes from './GroupListPage.module.css'
 

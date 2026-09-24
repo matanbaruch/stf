@@ -41,8 +41,12 @@ function ScheduleForm({group}: {group: StfGroup}) {
 
   async function save() {
     setSaving(true)
-    await updateGroupSchedule(group, draft)
-    setSaving(false)
+    try {
+      await updateGroupSchedule(group, draft)
+    }
+    finally {
+      setSaving(false)
+    }
   }
 
   return (

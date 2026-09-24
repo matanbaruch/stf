@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react'
+import {useCallback, useState, type FormEvent} from 'react'
 import {
   ActionIcon
   , Button
@@ -11,11 +11,14 @@ import {
   , TextInput
   , Tooltip
 } from '@mantine/core'
+import {useTimeout} from '@mantine/hooks'
 import {IconCloud, IconLock, IconLogin, IconLogout, IconShoppingCart, IconUser} from '@tabler/icons-react'
+import type {Control} from '@/core/control'
 import {useTranslation} from '@/core/i18n'
 import {notifyFailure} from '@/ui/notify'
 import {WidgetCard} from '@/ui/WidgetCard'
 import type {PaneProps} from '../../types'
+import {useDeviceValue} from '../use-device-value'
 
 interface AppStore {
   type: string
@@ -38,28 +41,16 @@ export function StoreAccountCard({control}: Pick<PaneProps, 'control'>) {
   const [password, setPassword] = useState('')
   const [dirty, setDirty] = useState({username: false, password: false})
   const [addingAccount, setAddingAccount] = useState(false)
-  const [accounts, setAccounts] = useState<string[]>([])
-  const active = useRef(true)
   const storeAccountType = deviceAppStores[currentAppStore].package
   const invalid = !username || !password
-
-  const getAccounts = useCallback(() => {
-    control.getAccounts(storeAccountType)
-      .then((result) => {
-        if (active.current) {
-          setAccounts(Array.isArray(result.body) ? result.body : [])
-        }
-      })
-      .catch(() => undefined)
-  }, [control, storeAccountType])
-
-  useEffect(() => {
-    active.current = true
-    getAccounts()
-    return () => {
-      active.current = false
-    }
-  }, [getAccounts])
+  const readAccounts = useCallback(
+    (target: Control) => target.getAccounts(storeAccountType)
+      .then((result): string[] => (Array.isArray(result.body) ? result.body : []))
+    , [storeAccountType]
+  )
+  const storeAccounts = useDeviceValue(control, readAccounts)
+  const accounts = storeAccounts.value ?? []
+  const accountsRecheck = useTimeout(storeAccounts.reload, 500)
 
   function addAccount(event: FormEvent) {
     event.preventDefault()
@@ -73,17 +64,14 @@ export function StoreAccountCard({control}: Pick<PaneProps, 'control'>) {
       })
       .finally(() => {
         setAddingAccount(false)
-        setTimeout(() => {
-          if (active.current) {
-            getAccounts()
-          }
-        }, 500)
+        accountsRecheck.clear()
+        accountsRecheck.start()
       })
   }
 
   function removeAccount(account: string) {
     control.removeAccount(storeAccountType, account)
-      .then(getAccounts)
+      .then(storeAccounts.reload)
       .catch((error) => {
         notifyFailure(error, t('Store Account'))
       })

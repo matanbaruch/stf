@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react'
 import sortBy from 'lodash/sortBy'
 import {getItem, listOf} from '@/core/collection'
-import {matchesSearch} from '@/ui/paging'
+import {searchFilter} from '@/ui/paging'
 import {GroupDetail, type GroupTab} from './GroupDetail'
 import {GroupList} from './GroupList'
 import {useGroupsSettingsSync, useGroupsStore} from './store'
@@ -12,7 +12,7 @@ export default function GroupsSettings() {
   const collection = useGroupsStore((state) => state.groups)
   const groups = useMemo(() => sortBy(listOf(collection), (group) => group.name.toLowerCase()), [collection])
   const [search, setSearch] = useState('')
-  const filtered = useMemo(() => groups.filter((group) => matchesSearch(group, search)), [groups, search])
+  const filtered = useMemo(() => searchFilter(groups, search), [groups, search])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [tab, setTab] = useState<GroupTab>('devices')
   const [confirmRemove, setConfirmRemove] = useState(true)

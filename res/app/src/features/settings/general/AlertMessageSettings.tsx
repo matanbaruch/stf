@@ -1,6 +1,7 @@
 import {Alert, SegmentedControl, Switch} from '@mantine/core'
 import {IconAlertTriangle, IconMessage, IconSpeakerphone, IconToggleRight} from '@tabler/icons-react'
 import isEqual from 'lodash/isEqual'
+import {alertLevelColors, type AlertMessage} from '@/core/alert-message'
 import {gettext, useTranslation} from '@/core/i18n'
 import {getSetting, setSetting, useSetting} from '@/core/settings'
 import {useSocketEvent} from '@/core/socket'
@@ -9,12 +10,6 @@ import {WidgetCard} from '@/ui/WidgetCard'
 import {SettingRow} from '../SettingRow'
 import {DebouncedTextInput} from './DebouncedTextInput'
 import classes from './GeneralSettings.module.css'
-
-interface AlertMessage {
-  data: string
-  activation: string
-  level: string
-}
 
 const alertMessageKey = 'alertMessage'
 
@@ -25,9 +20,9 @@ const defaultAlertMessage: AlertMessage = {
 }
 
 const alertLevels = [
-  {value: 'Information', label: gettext('Information'), color: 'blue'}
-  , {value: 'Warning', label: gettext('Warning'), color: 'yellow'}
-  , {value: 'Critical', label: gettext('Critical'), color: 'red'}
+  {value: 'Information', label: gettext('Information')}
+  , {value: 'Warning', label: gettext('Warning')}
+  , {value: 'Critical', label: gettext('Critical')}
 ]
 
 function storedAlertMessage(): AlertMessage {
@@ -43,7 +38,7 @@ export function AlertMessageSettings() {
   const [stored] = useSetting<Partial<AlertMessage>>(alertMessageKey, defaultAlertMessage)
   const alertMessage = {...defaultAlertMessage, ...stored}
   const active = alertMessage.activation === 'True'
-  const level = alertLevels.find((option) => option.value === alertMessage.level)
+  const levelColor: string | undefined = alertLevelColors[alertMessage.level]
 
   useSocketEvent('user.menu.users.updated', (message: {user?: {email?: string, privilege?: string, settings?: any}}) => {
     const user = message?.user
@@ -97,13 +92,13 @@ export function AlertMessageSettings() {
           value={alertMessage.level}
           onChange={(value) => updateAlertMessage({level: value})}
           data={alertLevels.map((option) => ({value: option.value, label: t(option.label)}))}
-          color={level?.color}
+          color={levelColor}
         />
       </SettingRow>
       <div className={classes.preview}>
         <Alert
           variant='light'
-          color={level?.color || 'blue'}
+          color={levelColor || 'blue'}
           icon={<IconAlertTriangle size={18} />}
           className={active ? undefined : classes.inactive}
           p='xs'

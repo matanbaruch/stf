@@ -21,8 +21,8 @@ export interface CellContext {
 export interface DeviceColumn {
   title: string
   defaultOrder: SortOrder
-  compare: (a: Device, b: Device) => number
-  filter: (device: Device, term: QueryTerm) => boolean
+  compare: (a: Device, b: Device, language: string) => number
+  filter: (device: Device, term: QueryTerm, language: string) => boolean
   render: (device: Device, context: CellContext) => ReactNode
 }
 
@@ -60,37 +60,52 @@ function filterIgnoreCase(value: unknown, query: string): boolean {
   return String(value).toLowerCase().indexOf(String(query).toLowerCase()) !== -1
 }
 
-function translated(value?: string | null): string {
-  return value ? translate(value) : ''
+function translated(language: string, value?: string | null): string {
+  return value ? translate(value, undefined, language) : ''
 }
 
-function lookup(table: Record<string, string>, key?: string): string {
-  return key && Object.hasOwn(table, key) ? translate(table[key]) : '-'
-}
-
-function zeroPadTwoDigit(digit: number): string {
-  return digit < 10 ? `0${digit}` : String(digit)
+function lookup(language: string, table: Record<string, string>, key?: string): string {
+  return key && Object.hasOwn(table, key) ? translate(table[key], undefined, language) : '-'
 }
 
 function dateNumber(date: Date | null): number {
   return date ? date.getFullYear() * 10000 + date.getMonth() * 100 + date.getDate() : 0
 }
 
-function groupDate(value?: string): string {
-  return formatDate(value, getDateFormat())
+interface GroupDates {
+  format: string
+  start: string
+  stop: string
+}
+
+const groupDatesCache = new WeakMap<Device, GroupDates>()
+
+function groupDates(device: Device): GroupDates {
+  const format = getDateFormat()
+  const cached = groupDatesCache.get(device)
+  if (cached?.format === format) {
+    return cached
+  }
+  const dates = {
+    format
+    , start: formatDate(device.group?.lifeTime?.start, format)
+    , stop: formatDate(device.group?.lifeTime?.stop, format)
+  }
+  groupDatesCache.set(device, dates)
+  return dates
 }
 
 function textColumn(
   title: string
-, value: (device: Device) => string
+, value: (device: Device, language: string) => string
 , overrides: Partial<DeviceColumn> = {}
 ): DeviceColumn {
   return {
     title
     , defaultOrder: 'asc'
-    , compare: (a, b) => compareIgnoreCase(value(a), value(b))
-    , filter: (device, term) => filterIgnoreCase(value(device), term.query)
-    , render: (device) => value(device)
+    , compare: (a, b, language) => compareIgnoreCase(value(a, language), value(b, language))
+    , filter: (device, term, language) => filterIgnoreCase(value(device, language), term.query)
+    , render: (device, context) => value(device, context.language)
     , ...overrides
   }
 }
@@ -118,22 +133,17 @@ function dateColumn(title: string, value: (device: Device) => Date | null): Devi
     , compare: (a, b) => (value(a)?.getTime() || 0) - (value(b)?.getTime() || 0)
     , filter: (device, term) =>
       operator(term.op)(dateNumber(value(device)), dateNumber(new Date(term.query)))
-    , render: (device) => {
-      const date = value(device)
-      return date ?
-        `${date.getFullYear()}-${zeroPadTwoDigit(date.getMonth() + 1)}-${zeroPadTwoDigit(date.getDate())}` :
-        ''
-    }
+    , render: (device) => formatDate(value(device), 'yyyy-MM-dd')
   }
 }
 
 function linkColumn(
   title: string
-, value: (device: Device) => string
+, value: (device: Device, language: string) => string
 , link: (device: Device) => string | undefined
 ): DeviceColumn {
   return textColumn(title, value, {
-    render: (device) => <ExternalLink label={value(device)} href={link(device)} />
+    render: (device, context) => <ExternalLink label={value(device, context.language)} href={link(device)} />
   })
 }
 
@@ -231,21 +241,20 @@ const definitions: Record<string, DeviceColumn> = {
     , filter: (device, term) => device.state === term.query
     , render: (device, context) => <StatusButton device={device} actions={context.actions} />
   }
-  , group: textColumn(gettext('Group Name'), (device) => translated(device.group?.name))
-  , groupSchedule: textColumn(gettext('Group Class'), (device) =>
-    (device.group?.class ? getClassName(device.group.class) || device.group.class : ''))
+  , group: textColumn(gettext('Group Name'), (device, language) => translated(language, device.group?.name))
+  , groupSchedule: textColumn(gettext('Group Class'), (device, language) =>
+    (device.group?.class ? getClassName(device.group.class, language) || device.group.class : ''))
   , groupOwner: linkColumn(
     gettext('Group Owner')
-    , (device) => translated(device.group?.owner?.name)
+    , (device, language) => translated(language, device.group?.owner?.name)
     , (device) => device.enhancedGroupOwnerProfileUrl
   )
-  , groupEndTime: textColumn(gettext('Group Expiration Date'), (device) =>
-    groupDate(device.group?.lifeTime?.stop))
-  , groupStartTime: textColumn(gettext('Group Starting Date'), (device) =>
-    groupDate(device.group?.lifeTime?.start))
+  , groupEndTime: textColumn(gettext('Group Expiration Date'), (device) => groupDates(device).stop)
+  , groupStartTime: textColumn(gettext('Group Starting Date'), (device) => groupDates(device).start)
   , groupRepetitions: textColumn(gettext('Group Repetitions'), (device) =>
     (device.group?.repetitions === undefined ? '' : String(device.group.repetitions)))
-  , groupOrigin: textColumn(gettext('Group Origin'), (device) => translated(device.group?.originName))
+  , groupOrigin: textColumn(gettext('Group Origin'), (device, language) =>
+    translated(language, device.group?.originName))
   , model: textColumn(gettext('Model'), modelValue, {
     compare: (a, b) => compareRespectCase(modelValue(a), modelValue(b))
     , render: (device, context) =>
@@ -297,12 +306,12 @@ const definitions: Record<string, DeviceColumn> = {
   , imei: textColumn(gettext('Phone IMEI'), (device) => device.phone?.imei || '')
   , imsi: textColumn(gettext('Phone IMSI'), (device) => device.phone?.imsi || '')
   , iccid: textColumn(gettext('Phone ICCID'), (device) => device.phone?.iccid || '')
-  , batteryHealth: textColumn(gettext('Battery Health'), (device) =>
-    (device.battery ? lookup(batteryHealths, device.battery.health) : ''))
-  , batterySource: textColumn(gettext('Battery Source'), (device) =>
-    (device.battery ? lookup(batterySources, device.battery.source) : ''))
-  , batteryStatus: textColumn(gettext('Battery Status'), (device) =>
-    (device.battery ? lookup(batteryStatuses, device.battery.status) : ''))
+  , batteryHealth: textColumn(gettext('Battery Health'), (device, language) =>
+    (device.battery ? lookup(language, batteryHealths, device.battery.health) : ''))
+  , batterySource: textColumn(gettext('Battery Source'), (device, language) =>
+    (device.battery ? lookup(language, batterySources, device.battery.source) : ''))
+  , batteryStatus: textColumn(gettext('Battery Status'), (device, language) =>
+    (device.battery ? lookup(language, batteryStatuses, device.battery.status) : ''))
   , batteryLevel: numberColumn(
     gettext('Battery Level')
     , batteryLevel

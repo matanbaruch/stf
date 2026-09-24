@@ -4,9 +4,10 @@ import {IconDeviceMobile, IconPlus, IconTrash} from '@tabler/icons-react'
 import {getItem, listOf, type Collection} from '@/core/collection'
 import type {Group as StfGroup} from '@/core/groups-api'
 import {gettext, useTranslation} from '@/core/i18n'
+import {tableDataDefaults} from '@/ui/table-model'
 import {addGroupDevice, addGroupDevices, removeGroupDevice, removeGroupDevices} from './actions'
 import {canAddDevices, isOriginGroup, networkOf, screenArea, screenOf} from './rules'
-import {ObjectsTable, tableDataDefaults, type ObjectsColumn} from './shared/ObjectsTable'
+import {ObjectsTable, type ObjectsColumn} from './shared/ObjectsTable'
 import {useGroupsStore, watchTransientDevices} from './store'
 import type {SettingsDevice} from './types'
 
@@ -90,10 +91,10 @@ export function GroupDevices({group}: {group: StfGroup}) {
       SettingsDevice[]
     , [group.devices, source]
   )
-  const availableDevices = useMemo(
-    () => listOf(source).filter((device) => !group.devices.includes(device.serial))
-    , [group.devices, source]
-  )
+  const availableDevices = useMemo(() => {
+    const members = new Set(group.devices)
+    return listOf(source).filter((device) => !members.has(device.serial))
+  }, [group.devices, source])
 
   if (loading) {
     return <Center p='xl'><Loader size='sm' /></Center>

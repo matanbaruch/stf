@@ -27,9 +27,10 @@ import {useSetting} from '@/core/settings'
 import {errorMessage, openGenericModal, withErrorModal} from '@/ui/modals'
 import {NothingToShow} from '@/ui/NothingToShow'
 import {PageControls, PerPageSelect, SearchInput, useItemsPerPage, usePaged} from '@/ui/Pager'
-import {matchesSearch} from '@/ui/paging'
+import {searchFilter} from '@/ui/paging'
 import {WidgetCard} from '@/ui/WidgetCard'
-import {useSettingsDevices, type SettingsDevice} from './settings-devices'
+import type {SettingsDevice} from '../groups/types'
+import {useSettingsDevices} from './settings-devices'
 import classes from './DevicesSettings.module.css'
 
 const defaultRemovingFilters: DeviceRemovalFilters = {
@@ -98,10 +99,10 @@ export default function DevicesSettings() {
   const [perPage, setPerPage] = useItemsPerPage('deviceItemsPerPage')
   const filters = {...defaultRemovingFilters, ...storedFilters}
 
-  const filtered = useMemo(() => {
-    const matching = devices.filter((device) => matchesSearch(device, search))
-    return sortBy(matching, (device) => (device.model || '').toLowerCase())
-  }, [devices, search])
+  const filtered = useMemo(
+    () => sortBy(searchFilter(devices, search), (device) => (device.model || '').toLowerCase())
+    , [devices, search]
+  )
 
   const {items: visible, page, pageCount, setPage} = usePaged(filtered, perPage)
 

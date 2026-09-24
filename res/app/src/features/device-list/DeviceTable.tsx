@@ -1,33 +1,11 @@
-import {memo, useMemo} from 'react'
+import {memo} from 'react'
 import {Group, Table, UnstyledButton} from '@mantine/core'
 import {IconArrowDown, IconArrowUp} from '@tabler/icons-react'
-import {
-  columnOrderingFeature
-  , columnVisibilityFeature
-  , createSortedRowModel
-  , rowSortingFeature
-  , tableFeatures
-  , useTable
-  , type ColumnDef
-} from '@tanstack/react-table'
 import type {Device} from '@/core/devices/types'
 import {useTranslation} from '@/core/i18n'
-import {columnDefinition, defaultColumns, type CellContext, type ColumnSetting} from './columns'
+import {columnDefinition, type CellContext} from './columns'
 import {sortEntries, type SortSetting} from './list-model'
 import classes from './DeviceList.module.css'
-
-const features = tableFeatures({
-  rowSortingFeature
-  , sortedRowModel: createSortedRowModel()
-  , columnVisibilityFeature
-  , columnOrderingFeature
-})
-
-const tableColumns: Array<ColumnDef<typeof features, Device>> = defaultColumns.map(({name}) => ({
-  id: name
-  , accessorFn: (device: Device) => device
-  , sortFn: (rowA, rowB) => columnDefinition(name)?.compare(rowA.original, rowB.original) || 0
-}))
 
 const DeviceRow = memo(function DeviceRow({device, columnIds, context}: {
   device: Device
@@ -45,35 +23,15 @@ const DeviceRow = memo(function DeviceRow({device, columnIds, context}: {
   )
 })
 
-export function DeviceTable({devices, columns, sort, onSort, context}: {
+export function DeviceTable({devices, columnIds, sort, onSort, context}: {
   devices: Device[]
-  columns: ColumnSetting[]
+  columnIds: string[]
   sort: SortSetting
   onSort: (name: string, multiple: boolean) => void
   context: CellContext
 }) {
   const {t} = useTranslation()
-  const sorting = useMemo(
-    () => sortEntries(sort).map((entry) => ({id: entry.name, desc: entry.order === 'desc'}))
-    , [sort]
-  )
-  const columnVisibility = useMemo(
-    () => Object.fromEntries(columns.map((column) => [column.name, column.selected]))
-    , [columns]
-  )
-  const columnOrder = useMemo(() => columns.map((column) => column.name), [columns])
-
-  const table = useTable({
-    features
-    , columns: tableColumns
-    , data: devices
-    , getRowId: (device) => device.serial
-    , state: {sorting, columnVisibility, columnOrder}
-  })
-
-  const headers = table.getHeaderGroups()[0]?.headers || []
-  const visibleIds = headers.map((header) => header.column.id)
-  const columnIds = useMemo(() => visibleIds, [visibleIds.join('|')])
+  const entries = sortEntries(sort)
 
   return (
     <Table
@@ -84,14 +42,14 @@ export function DeviceTable({devices, columns, sort, onSort, context}: {
     >
       <Table.Thead>
         <Table.Tr>
-          {headers.map((header) => {
-            const sorted = header.column.getIsSorted()
-            const title = columnDefinition(header.column.id)?.title || header.column.id
+          {columnIds.map((id) => {
+            const sorted = entries.find((entry) => entry.name === id)?.order
+            const title = columnDefinition(id)?.title || id
             return (
               <Table.Th
-                key={header.id}
+                key={id}
                 className={`sortable sort-${sorted || 'none'} ${classes.sortable}`}
-                onClick={(event) => onSort(header.column.id, event.shiftKey)}
+                onClick={(event) => onSort(id, event.shiftKey)}
               >
                 <UnstyledButton className={classes.sortButton}>
                   <Group gap={4} wrap='nowrap'>
@@ -106,8 +64,8 @@ export function DeviceTable({devices, columns, sort, onSort, context}: {
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
-        {table.getRowModel().rows.map((row) => (
-          <DeviceRow key={row.id} device={row.original} columnIds={columnIds} context={context} />
+        {devices.map((device) => (
+          <DeviceRow key={device.serial} device={device} columnIds={columnIds} context={context} />
         ))}
       </Table.Tbody>
     </Table>

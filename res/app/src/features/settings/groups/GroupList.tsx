@@ -30,6 +30,7 @@ import {useTranslation} from '@/core/i18n'
 import {mailTo} from '@/ui/mail'
 import {NothingToShow} from '@/ui/NothingToShow'
 import {PageControls, PerPageSelect, SearchInput, useItemsPerPage, usePaged} from '@/ui/Pager'
+import {toggled} from '@/ui/selection'
 import {createGroup, removeGroups} from './actions'
 import {classColor, groupStatus, isAdminUser} from './rules'
 import {useGroupsStore} from './store'
@@ -89,23 +90,15 @@ export function GroupList({
   const allocated = quotas?.allocated?.number
   const canCreate = typeof consumed === 'number' && typeof allocated === 'number' && consumed < allocated
 
-  function toggle(id: string) {
-    setChecked((current) => {
-      const next = new Set(current)
-      if (next.has(id)) {
-        next.delete(id)
-      }
-      else {
-        next.add(id)
-      }
-      return next
-    })
-  }
-
   async function create() {
     setCreating(true)
-    const group = await createGroup()
-    setCreating(false)
+    let group
+    try {
+      group = await createGroup()
+    }
+    finally {
+      setCreating(false)
+    }
     if (group) {
       onSearchChange('')
       onSelect(group.id)
@@ -221,7 +214,7 @@ export function GroupList({
                   className={classes.itemCheck}
                   aria-label={group.name}
                   checked={checked.has(group.id)}
-                  onChange={() => toggle(group.id)}
+                  onChange={() => setChecked((current) => toggled(current, group.id))}
                 />
                 <UnstyledButton
                   className={classes.itemBody}

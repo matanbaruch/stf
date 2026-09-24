@@ -7,14 +7,11 @@ import {kickDevice} from '@/core/group'
 import {translate} from '@/core/i18n'
 import {useStandalone} from '@/ui/modes'
 import {notifyFailure} from '@/ui/notify'
+import {rotateBy, rotationOf} from './device-commands'
 
 export type Orientation = 'portrait' | 'landscape'
 
 const ROTATION_SETTLE_MS = 400
-
-function rotationOf(device: Device): number {
-  return device.display ? device.display.rotation : 0
-}
 
 function isPortrait(rotation: number): boolean {
   return rotation === 0 || rotation === 180
@@ -44,24 +41,6 @@ export function useDeviceActions(device: Device, control: Control) {
       setCurrentRotation('landscape')
     }
   }, [rotation])
-
-  function resizeStandaloneWindow() {
-    if (standalone) {
-      window.resizeTo(window.outerHeight, window.outerWidth)
-    }
-  }
-
-  function rotateLeft() {
-    const angle = rotationOf(deviceRef.current)
-    control.rotate(angle === 0 ? 270 : angle - 90)
-    resizeStandaloneWindow()
-  }
-
-  function rotateRight() {
-    const angle = rotationOf(deviceRef.current)
-    control.rotate(angle === 270 ? 0 : angle + 90)
-    resizeStandaloneWindow()
-  }
 
   function tryToRotate(orientation: Orientation) {
     setCurrentRotation(orientation)
@@ -111,27 +90,14 @@ export function useDeviceActions(device: Device, control: Control) {
     }
   }
 
-  function saveScreenShot() {
-    control.screenshot()
-      .then((result) => {
-        window.location.href = `${result.body.href}?download`
-      })
-      .catch((error) => {
-        notifyFailure(error, translate('Save ScreenShot'))
-      })
-  }
-
   return {
-    standalone
-    , groupDevices
+    groupDevices
     , rotation
     , currentRotation
-    , rotateLeft
-    , rotateRight
+    , rotateBy: (delta: number) => rotateBy(control, deviceRef.current, delta, standalone)
     , tryToRotate
     , stopUsing
     , controlDevice
-    , saveScreenShot
   }
 }
 

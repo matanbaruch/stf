@@ -7,7 +7,7 @@ import {usersApi} from '@/core/users-api'
 import {withErrorModal} from '@/ui/modals'
 
 export const userNameRegex = /^[0-9a-zA-Z-_. ]{1,50}$/
-export const userNameRegexStr = '/^[0-9a-zA-Z-_. ]{1,50}$/'
+export const userNameRegexStr = String(userNameRegex)
 const emailPattern = /^[^\s@]+@[^\s@]+$/
 
 export function CreateUserForm({onCreated, className}: {onCreated: () => void, className?: string}) {
@@ -20,9 +20,14 @@ export function CreateUserForm({onCreated, className}: {onCreated: () => void, c
 
   async function save() {
     setSaving(true)
-    const {error} = await withErrorModal(() => usersApi.createUser(name, email))
-    setSaving(false)
-    if (!error) {
+    let result
+    try {
+      result = await withErrorModal(() => usersApi.createUser(name, email))
+    }
+    finally {
+      setSaving(false)
+    }
+    if (!result.error) {
       notifications.show({color: 'green', message: `${name} <${email}>`})
       setName('')
       setEmail('')

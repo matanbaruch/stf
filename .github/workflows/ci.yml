@@ -20,6 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  NPM_INSTALL_FLAGS: --no-audit --no-fund --loglevel=http
   # Bump to invalidate the dependency cache without touching package.json.
   CACHE_EPOCH: v3
 
@@ -67,7 +68,8 @@ jobs:
       - name: Compute dependency cache key
         id: cachekey
         run: |
-          echo "key=stf-deps-${CACHE_EPOCH}-${{ runner.os }}-${{ hashFiles('package.json', '.nvmrc') }}" >> "$GITHUB_OUTPUT"
+          flags="$(printf '%s' "$NPM_INSTALL_FLAGS" | sha256sum | cut -c1-12)"
+          echo "key=stf-deps-${CACHE_EPOCH}-${{ runner.os }}-${flags}-${{ hashFiles('package.json', '.nvmrc') }}" >> "$GITHUB_OUTPUT"
 
       - name: Restore dependency cache
         id: deps
@@ -79,7 +81,7 @@ jobs:
 
       - name: Install npm dependencies
         if: steps.deps.outputs.cache-hit != 'true'
-        run: npm install --no-audit --no-fund --loglevel=http
+        run: npm install $NPM_INSTALL_FLAGS
 
       # gulp's own `build` task races clean against webpack:build, so run the
       # two halves in order instead.

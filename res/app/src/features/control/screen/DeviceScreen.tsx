@@ -33,7 +33,7 @@ export function DeviceScreen({device, control, showScreen}: DeviceScreenProps) {
   const streamRef = useRef<ScreenStream | null>(null)
   const deviceRef = useRef(device)
   const showScreenRef = useRef(showScreen)
-  const [screen] = useState<ScreenGeometry>(() => ({rotation: 0, bounds: {x: 0, y: 0, w: 0, h: 0}}))
+  const screenRef = useRef<ScreenGeometry>({rotation: 0, bounds: {x: 0, y: 0, w: 0, h: 0}})
   const [displayError, setDisplayError] = useState<DisplayError>(false)
   const [hasFrame, setHasFrame] = useState(false)
 
@@ -63,7 +63,7 @@ export function DeviceScreen({device, control, showScreen}: DeviceScreenProps) {
       , root
       , positioner
       , canvas
-      , screen
+      , screen: screenRef.current
       , getDevice: () => deviceRef.current
       , isShown: () => showScreenRef.current
       , onDisplayError: setDisplayError
@@ -108,7 +108,7 @@ export function DeviceScreen({device, control, showScreen}: DeviceScreenProps) {
       root
       , input
       , fingers: fingerRefs.current
-      , screen
+      , screen: screenRef.current
       , scaler
       , control
     })
@@ -162,9 +162,6 @@ export function DeviceScreen({device, control, showScreen}: DeviceScreenProps) {
               <div className='screen-error-alert'>
                 {t('The current view is marked secure and cannot be viewed remotely.')}
               </div>
-            )}
-            {displayError === 'timeout' && (
-              <div className='screen-error-alert'>{t('Retrieving the device screen has timed out.')}</div>
             )}
             <Button fullWidth leftSection={<IconRefresh size={16} />} onClick={retryLoadingScreen}>
               {t('Retry')}

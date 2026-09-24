@@ -22,12 +22,12 @@ import {
   , IconFolderRoot
   , IconPlayerPlay
 } from '@tabler/icons-react'
+import {createDeviceStore} from '@/core/device-store'
 import {translate, useTranslation} from '@/core/i18n'
 import {errorMessage} from '@/ui/modals'
 import {NothingToShow} from '@/ui/NothingToShow'
 import {notifyFailure} from '@/ui/notify'
 import type {PaneProps} from '../../types'
-import {setExplorerPath, useExplorerStore} from './explorerStore'
 import {
   compareEntries
   , fileIcon
@@ -39,6 +39,8 @@ import {
   , type FileEntry
 } from './fileUtils'
 import classes from './ExplorerPane.module.css'
+
+const explorerPaths = createDeviceStore<string>('/')
 
 function cleanPath(path: string): string {
   const normalized = normalizePath(path)
@@ -98,7 +100,7 @@ function EntryName({entry, busy, onOpen}: {entry: FileEntry, busy: boolean, onOp
 export default function ExplorerPane({device, control}: PaneProps) {
   const {t} = useTranslation()
   const serial = device.serial
-  const path = useExplorerStore((state) => state.paths[serial] || '/')
+  const path = explorerPaths.useValue(serial)
   const [search, setSearch] = useState(path)
   const [files, setFiles] = useState<FileEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -109,7 +111,7 @@ export default function ExplorerPane({device, control}: PaneProps) {
   const listDir = useCallback((target: string) => {
     const dir = cleanPath(target)
     const id = ++requestId.current
-    setExplorerPath(serial, dir)
+    explorerPaths.set(serial, dir)
     setSearch(dir)
     setLoading(true)
     setError(null)
@@ -133,11 +135,8 @@ export default function ExplorerPane({device, control}: PaneProps) {
   }, [control, serial])
 
   useEffect(() => {
-    listDir(path)
-    return () => {
-      requestId.current++
-    }
-  }, [listDir])
+    listDir(explorerPaths.get(serial))
+  }, [listDir, serial])
 
   const sorted = useMemo(() => files.slice().sort(compareEntries), [files])
 

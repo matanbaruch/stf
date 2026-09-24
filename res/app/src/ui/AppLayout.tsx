@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import {NavLink, Outlet, useLocation, useNavigate} from 'react-router'
 import {
   ActionIcon
@@ -16,7 +16,7 @@ import {
   , useComputedColorScheme
   , useMantineColorScheme
 } from '@mantine/core'
-import {useDisclosure} from '@mantine/hooks'
+import {useDisclosure, useWindowEvent} from '@mantine/hooks'
 import {notifications} from '@mantine/notifications'
 import {
   IconDeviceMobile
@@ -29,27 +29,17 @@ import {
   , IconSitemap
   , IconSun
 } from '@tabler/icons-react'
-import {api} from '@/core/api'
+import {alertLevelColors, type AlertMessage} from '@/core/alert-message'
 import {appState, isAdmin} from '@/core/app-state'
+import {useContactEmail} from '@/core/contact'
 import {gettext, languageSettingKey, detectLanguage, setLanguage, useTranslation} from '@/core/i18n'
-import {getSocket, useSocketEvent} from '@/core/socket'
+import {getSocket, onSocket, useSocketEvent} from '@/core/socket'
 import {useSetting, useSettingsStore} from '@/core/settings'
 import {acceptAdbKey} from '@/core/user'
+import {usersApi} from '@/core/users-api'
 import {basicMode, useAdminMode, usePlatform, useStandalone} from './modes'
 import {openAddAdbKey, openSocketDisconnected, openVersionUpdate} from './modals'
 import classes from './AppLayout.module.css'
-
-interface AlertMessage {
-  activation: string
-  data: string
-  level: string
-}
-
-const alertColors: Record<string, string> = {
-  Information: 'blue'
-  , Warning: 'yellow'
-  , Critical: 'red'
-}
 
 const headerHeight = 56
 const alertStripHeight = 36
@@ -76,38 +66,37 @@ function useLanguageSync() {
 function useKonamiAdminToggle() {
   const [adminMode, setAdminMode] = useAdminMode()
   const {t} = useTranslation()
+  const position = useRef(0)
 
-  useEffect(() => {
-    let position = 0
-    function onKey(event: KeyboardEvent) {
-      if (isTypingTarget(event.target)) {
-        return
-      }
-      position = event.key === konami[position] ? position + 1 : Number(event.key === konami[0])
-      if (position === konami.length) {
-        position = 0
-        const next = !adminMode
-        setAdminMode(next)
-        notifications.show({
-          message: next ?
-            t('Admin mode has been enabled.') :
-            t('Admin mode has been disabled.')
-        })
-      }
+  useWindowEvent('keydown', (event) => {
+    if (isTypingTarget(event.target)) {
+      return
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [adminMode, setAdminMode, t])
+    position.current = event.key === konami[position.current] ? position.current + 1 : Number(event.key === konami[0])
+    if (position.current === konami.length) {
+      position.current = 0
+      const next = !adminMode
+      setAdminMode(next)
+      notifications.show({
+        message: next ?
+          t('Admin mode has been enabled.') :
+          t('Admin mode has been disabled.')
+      })
+    }
+  })
 }
 
 function useSocketState() {
   const {t} = useTranslation()
 
   useEffect(() => {
-    const socket = getSocket()
     let hasFailedOnce = false
-    const listeners: Record<string, () => void> = {
-      connect: () => {
+    function lost(message: string) {
+      hasFailedOnce = true
+      openSocketDisconnected(message)
+    }
+    const unsubscribers = [
+      onSocket('connect', () => {
         if (hasFailedOnce) {
           notifications.show({
             color: 'green'
@@ -116,28 +105,14 @@ function useSocketState() {
             , autoClose: 2000
           })
         }
-      }
-      , disconnect: () => {
-        hasFailedOnce = true
-        openSocketDisconnected(gettext('Socket connection was lost'))
-      }
-      , connect_error: () => {
-        hasFailedOnce = true
-        openSocketDisconnected(gettext('Error'))
-      }
-      , error: () => {
-        hasFailedOnce = true
-        openSocketDisconnected(gettext('Error'))
-      }
-      , outdated: () => openVersionUpdate()
-    }
-    for (const [event, listener] of Object.entries(listeners)) {
-      socket.on(event, listener)
-    }
+      })
+      , onSocket('disconnect', () => lost(gettext('Socket connection was lost')))
+      , onSocket('connect_error', () => lost(gettext('Error')))
+      , onSocket('error', () => lost(gettext('Error')))
+      , onSocket('outdated', () => openVersionUpdate())
+    ]
     function unbind() {
-      for (const [event, listener] of Object.entries(listeners)) {
-        socket.off(event, listener)
-      }
+      unsubscribers.forEach((unsubscribe) => unsubscribe())
     }
     window.addEventListener('beforeunload', unbind)
     return () => {
@@ -154,7 +129,7 @@ function useAlertMessage(): AlertMessage | null {
 
   useEffect(() => {
     if (!isAdmin()) {
-      api.get<{alertMessage: AlertMessage}>('/api/v1/users/alertMessage')
+      usersApi.getUsersAlertMessage()
         .then((response) => setUserAlert(response.alertMessage))
         .catch(() => undefined)
     }
@@ -180,11 +155,10 @@ function logout() {
   setTimeout(() => getSocket().disconnect(), 100)
 }
 
-function NavItem({to, icon, label, compact, accessKey}: {
+function NavItem({to, icon, label, accessKey}: {
   to: string
   icon: React.ReactNode
   label: string
-  compact: boolean
   accessKey?: string
 }) {
   return (
@@ -194,7 +168,7 @@ function NavItem({to, icon, label, compact, accessKey}: {
       className={({isActive}) => `${classes.link} ${isActive ? classes.active : ''}`}
     >
       {icon}
-      {!compact && <span>{label}</span>}
+      <span>{label}</span>
     </NavLink>
   )
 }
@@ -206,7 +180,7 @@ export function AppLayout() {
   const standalone = useStandalone()
   const [lastUsedDevice] = useSetting<string | undefined>('lastUsedDevice', undefined)
   const [platform, setPlatform] = usePlatform()
-  const [contactEmail, setContactEmail] = useState<string | null>(null)
+  const contactEmail = useContactEmail()
   const [opened, {toggle, close}] = useDisclosure(false)
   const {setColorScheme} = useMantineColorScheme()
   const colorScheme = useComputedColorScheme('light')
@@ -230,12 +204,6 @@ export function AppLayout() {
     close()
   }, [location.pathname, close])
 
-  useEffect(() => {
-    api.get<{contact: {email: string}}>('/auth/contact')
-      .then((response) => setContactEmail(response.contact.email))
-      .catch(() => undefined)
-  }, [])
-
   const links = [
     lastUsedDevice ? {
       to: `/control/${lastUsedDevice}`
@@ -256,7 +224,7 @@ export function AppLayout() {
   }
 
   const alertActive = alertMessage?.activation === 'True'
-  const alertColor = alertColors[alertMessage?.level || ''] || 'blue'
+  const alertColor = alertLevelColors[alertMessage?.level || ''] || 'blue'
 
   return (
     <AppShell
@@ -274,7 +242,7 @@ export function AppLayout() {
               <Text fw={700} size='lg'>STF</Text>
             </UnstyledButton>
             <Group gap={4} visibleFrom='sm' wrap='nowrap'>
-              {links.map((link) => <NavItem key={link.to} compact={false} {...link} />)}
+              {links.map((link) => <NavItem key={link.to} {...link} />)}
             </Group>
           </Group>
 
@@ -376,7 +344,7 @@ export function AppLayout() {
 
       <AppShell.Navbar p='md'>
         <Stack gap={4}>
-          {links.map((link) => <NavItem key={link.to} compact={false} {...link} accessKey={undefined} />)}
+          {links.map((link) => <NavItem key={link.to} {...link} accessKey={undefined} />)}
         </Stack>
       </AppShell.Navbar>
 

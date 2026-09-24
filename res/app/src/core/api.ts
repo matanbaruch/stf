@@ -73,14 +73,3 @@ export const api = {
   , put: <T = any>(url: string, body?: unknown) => request<T>('PUT', url, body)
   , delete: <T = any>(url: string, body?: unknown) => request<T>('DELETE', url, body)
 }
-
-export function query(params: Record<string, string | number | boolean | undefined | null>): string {
-  const search = new URLSearchParams()
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) {
-      search.set(key, String(value))
-    }
-  }
-  const text = search.toString()
-  return text ? `?${text}` : ''
-}

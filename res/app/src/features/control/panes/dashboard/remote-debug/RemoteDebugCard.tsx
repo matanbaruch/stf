@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useEffect, useEffectEvent, useState} from 'react'
 import {Alert, Button, Loader, Text, TextInput} from '@mantine/core'
 import {IconAlertTriangle, IconBug, IconPlayerPlay, IconPlayerStop} from '@tabler/icons-react'
 import type {Control} from '@/core/control'
@@ -49,10 +49,14 @@ export function RemoteDebugCard({device, control}: {device: Device, control: Con
       .finally(() => setStopping(false))
   }
 
-  useEffect(() => {
-    if (remoteDebugStore.get(serial).stoppedControl !== control) {
+  const startUnlessStoppedBy = useEffectEvent((target: Control) => {
+    if (remoteDebugStore.get(serial).stoppedControl !== target) {
       start()
     }
+  })
+
+  useEffect(() => {
+    startUnlessStoppedBy(control)
   }, [control])
 
   return (

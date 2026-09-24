@@ -15,11 +15,10 @@ import {WidgetCard} from '@/ui/WidgetCard'
 import type {PaneProps} from '../../types'
 import {
   addForwardRow
-  , forwardRows
+  , forwardRowsStore
   , removeForwardRow
   , syncForwardRows
   , updateForwardRow
-  , usePortForwardsStore
   , type ForwardRow
 } from './portForwardsStore'
 import classes from './AdvancedPane.module.css'
@@ -31,12 +30,11 @@ function notifyError(error: unknown) {
 export function PortForwardingCard({device, control}: PaneProps) {
   const {t} = useTranslation()
   const serial = device.serial
-  const rows = usePortForwardsStore((state) => forwardRows(state, serial))
-  const deviceForwards = device.reverseForwards || []
-  const signature = JSON.stringify(deviceForwards)
+  const rows = forwardRowsStore.useValue(serial)
+  const signature = JSON.stringify(device.reverseForwards || [])
 
   useEffect(() => {
-    syncForwardRows(serial, deviceForwards)
+    syncForwardRows(serial, JSON.parse(signature))
   }, [serial, signature])
 
   function applyForward(row: ForwardRow, enabled: boolean) {

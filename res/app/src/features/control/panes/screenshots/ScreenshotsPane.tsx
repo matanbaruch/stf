@@ -8,17 +8,18 @@ import {NothingToShow} from '@/ui/NothingToShow'
 import {notifyFailure} from '@/ui/notify'
 import type {PaneProps} from '../../types'
 import {
-  maxShotSize
+  addScreenshot
+  , clearScreenshots
+  , maxShotSize
   , minShotSize
+  , screenshotsStore
   , shotSizeParameter
   , shotSizeStep
-  , useScreenshotsStore
+  , useScreenshotSize
   , zoomStep
   , type Screenshot
 } from './screenshotsStore'
 import classes from './ScreenshotsPane.module.css'
-
-const noShots: Screenshot[] = []
 
 function ShotImage({shot, size}: {shot: Screenshot, size: number}) {
   const [loaded, setLoaded] = useState(false)
@@ -37,10 +38,9 @@ function ShotImage({shot, size}: {shot: Screenshot, size: number}) {
 
 export default function ScreenshotsPane({device, control}: PaneProps) {
   const {t} = useTranslation()
-  const shots = useScreenshotsStore((state) => state.shots[device.serial] || noShots)
-  const size = useScreenshotsStore((state) => state.size)
+  const shots = screenshotsStore.useValue(device.serial)
+  const {size, setSize} = useScreenshotSize()
   const [requestedSize] = useDebouncedValue(size, 100)
-  const {add, clear, setSize} = useScreenshotsStore.getState()
   const [taking, setTaking] = useState(0)
   const empty = shots.length === 0
 
@@ -48,7 +48,7 @@ export default function ScreenshotsPane({device, control}: PaneProps) {
     setTaking((count) => count + 1)
     control.screenshot()
       .then((result) => {
-        add(device.serial, {
+        addScreenshot(device.serial, {
           id: result.body.id || result.body.href
           , href: result.body.href
           , date: result.body.date
@@ -79,7 +79,7 @@ export default function ScreenshotsPane({device, control}: PaneProps) {
               color='red'
               leftSection={<IconTrash size={16} />}
               disabled={empty}
-              onClick={() => clear(device.serial)}
+              onClick={() => clearScreenshots(device.serial)}
             >
               {t('Clear')}
             </Button>

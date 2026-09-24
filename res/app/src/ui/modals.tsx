@@ -1,3 +1,4 @@
+import type {ComponentType} from 'react'
 import {Button, Code, Group, Stack, Text, ThemeIcon} from '@mantine/core'
 import {modals} from '@mantine/modals'
 import {
@@ -19,14 +20,17 @@ const typeIcons = {
   , Error: {icon: IconCircleX, color: 'red'}
 }
 
-function ModalTitle({type, title}: {type: GenericModalType, title?: string}) {
-  const {icon: Icon, color} = typeIcons[type]
+export function ModalTitle({icon: Icon, color, title}: {
+  icon: ComponentType<{size?: number}>
+  color?: string
+  title: string
+}) {
   return (
     <Group gap='sm'>
       <ThemeIcon variant='light' color={color} radius='xl'>
         <Icon size={18} />
       </ThemeIcon>
-      <Text fw={600}>{title || translate(type)}</Text>
+      <Text fw={600}>{title}</Text>
     </Group>
   )
 }
@@ -40,7 +44,7 @@ export function openGenericModal(options: {
 }): Promise<boolean> {
   return new Promise((resolve) => {
     const id = modals.open({
-      title: <ModalTitle type={options.type} title={options.title} />
+      title: <ModalTitle {...typeIcons[options.type]} title={options.title || translate(options.type)} />
       , size: options.size === 'lg' ? 'lg' : 'md'
       , centered: true
       , onClose: () => resolve(false)
@@ -120,14 +124,7 @@ export function openSocketDisconnected(message: string): void {
   }
   disconnectedOpen = true
   modals.open({
-    title: (
-      <Group gap='sm'>
-        <ThemeIcon variant='light' color='red' radius='xl'>
-          <IconPlugConnectedX size={18} />
-        </ThemeIcon>
-        <Text fw={600}>{translate('Disconnected')}</Text>
-      </Group>
-    )
+    title: <ModalTitle icon={IconPlugConnectedX} color='red' title={translate('Disconnected')} />
     , centered: true
     , onClose: () => {
       disconnectedOpen = false
@@ -151,7 +148,7 @@ export function openSocketDisconnected(message: string): void {
 
 export function openVersionUpdate(): void {
   modals.open({
-    title: <ModalTitle type='Information' title={translate('Version Update')} />
+    title: <ModalTitle {...typeIcons.Information} title={translate('Version Update')} />
     , centered: true
     , children: (
       <Stack>
@@ -176,14 +173,7 @@ export function openVersionUpdate(): void {
 export function openAddAdbKey(data: {fingerprint: string, title: string}): Promise<boolean> {
   return new Promise((resolve) => {
     const id = modals.open({
-      title: (
-        <Group gap='sm'>
-          <ThemeIcon variant='light' radius='xl'>
-            <IconKey size={18} />
-          </ThemeIcon>
-          <Text fw={600}>{translate('Add the following ADB Key to STF?')}</Text>
-        </Group>
-      )
+      title: <ModalTitle icon={IconKey} title={translate('Add the following ADB Key to STF?')} />
       , centered: true
       , size: 'lg'
       , onClose: () => resolve(false)

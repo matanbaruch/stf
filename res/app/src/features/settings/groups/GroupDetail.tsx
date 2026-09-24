@@ -39,9 +39,14 @@ function NameEditor({group}: {group: StfGroup}) {
       return
     }
     setSaving(true)
-    const {error} = await updateGroupName(group, name)
-    setSaving(false)
-    if (!error) {
+    let result
+    try {
+      result = await updateGroupName(group, name)
+    }
+    finally {
+      setSaving(false)
+    }
+    if (!result.error) {
       setEditing(false)
     }
   }
@@ -124,7 +129,7 @@ export function GroupDetail({group, tab, onTabChange, confirmRemove}: {
     if (conflicts) {
       onTabChange('conflicts')
     }
-  }, [conflicts])
+  }, [conflicts, onTabChange])
 
   return (
     <Card className='group-detail' data-group-id={group.id}>

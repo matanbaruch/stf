@@ -1,5 +1,4 @@
 import type {Device} from '@/core/devices/types'
-import {ImagePool} from './image-pool'
 import {rotator} from './rotator'
 
 export interface ScreenBounds {
@@ -14,7 +13,7 @@ export interface ScreenGeometry {
   bounds: ScreenBounds
 }
 
-export type DisplayError = false | 'secure' | 'timeout'
+export type DisplayError = false | 'secure'
 
 export interface ScreenStreamOptions {
   url: string
@@ -38,8 +37,6 @@ interface BoundSize {
   w: number
   h: number
 }
-
-const BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='
 
 const streamOptions = {
   autoScaleForRetina: true
@@ -75,6 +72,8 @@ export function startScreenStream(options: ScreenStreamOptions): ScreenStream {
   let parentAspect = 1
   let displayError: DisplayError = false
   let framesDrawn = 0
+  let framesReceived = 0
+  let newestDrawnFrame = 0
 
   function isOpen(): boolean {
     return ws !== null && ws.readyState === WebSocket.OPEN
@@ -183,14 +182,13 @@ export function startScreenStream(options: ScreenStreamOptions): ScreenStream {
   let cachedImageHeight = 0
   let cssRotation = 0
   let alwaysUpright = false
-  const imagePool = new ImagePool(10)
 
   function applyQuirks(banner: {quirks: {alwaysUpright: boolean}}) {
     alwaysUpright = banner.quirks.alwaysUpright
     root.classList.toggle('quirk-always-upright', alwaysUpright)
   }
 
-  function hasImageAreaChanged(img: HTMLImageElement): boolean {
+  function hasImageAreaChanged(img: ImageBitmap): boolean {
     return cachedScreen.bounds.w !== screen.bounds.w ||
       cachedScreen.bounds.h !== screen.bounds.h ||
       cachedImageWidth !== img.width ||
@@ -198,7 +196,7 @@ export function startScreenStream(options: ScreenStreamOptions): ScreenStream {
       cachedScreen.rotation !== screen.rotation
   }
 
-  function updateImageArea(img: HTMLImageElement) {
+  function updateImageArea(img: ImageBitmap) {
     if (!hasImageAreaChanged(img)) {
       return
     }
@@ -244,27 +242,25 @@ export function startScreenStream(options: ScreenStreamOptions): ScreenStream {
       setDisplayError(false)
     }
 
-    const blob = new Blob([data], {type: 'image/jpeg'})
-    const img = imagePool.next()
-    const url = URL.createObjectURL(blob)
+    framesReceived += 1
+    const frame = framesReceived
 
-    function release() {
-      img.onload = img.onerror = null
-      img.src = BLANK_IMG
-      URL.revokeObjectURL(url)
-    }
-
-    img.onload = () => {
-      updateImageArea(img)
-      g.drawImage(img, 0, 0, img.width, img.height)
-      release()
-      if (framesDrawn++ === 0) {
-        root.classList.add('has-frame')
-        options.onFirstFrame()
-      }
-    }
-    img.onerror = release
-    img.src = url
+    createImageBitmap(data)
+      .then((bitmap) => {
+        if (!ws || frame < newestDrawnFrame) {
+          bitmap.close()
+          return
+        }
+        newestDrawnFrame = frame
+        updateImageArea(bitmap)
+        g.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height)
+        bitmap.close()
+        if (framesDrawn++ === 0) {
+          root.classList.add('has-frame')
+          options.onFirstFrame()
+        }
+      })
+      .catch(() => undefined)
   }
 
   ws.onmessage = (message: MessageEvent) => {

@@ -32,10 +32,7 @@ const DeviceTile = memo(function DeviceTile({device, actions}: {
   actions: DeviceActions
 }) {
   const [pending, setPending] = useState(false)
-  const control = useMemo(
-    () => (device.using ? createControl(device, device.channel) : null)
-    , [device.using, device.serial, device.channel]
-  )
+  const control = useMemo(() => (device.using ? createControl(device, device.channel) : null), [device])
 
   function open(event: MouseEvent) {
     const result = actions.open(event, device)

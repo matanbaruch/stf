@@ -1,12 +1,14 @@
 import {useMemo, useState, type ReactNode} from 'react'
 import {Checkbox, Group, Stack, Table, Text, UnstyledButton} from '@mantine/core'
-import {IconChevronDown, IconChevronUp, IconSelector} from '@tabler/icons-react'
 import {useTranslation} from '@/core/i18n'
 import {useSetting} from '@/core/settings'
 import {ColumnChoice} from '@/ui/ColumnChoice'
 import {NothingToShow} from '@/ui/NothingToShow'
 import {PageControls, PerPageSelect, SearchInput, usePaged} from '@/ui/Pager'
-import {defaultItemsPerPage, matchesSearch} from '@/ui/paging'
+import {defaultItemsPerPage, searchFilter} from '@/ui/paging'
+import {toggled} from '@/ui/selection'
+import {SortIcon} from '@/ui/SortIcon'
+import {normalizeTableData, selectColumns, sortState, toggleSort, type TableData} from '@/ui/table-model'
 import classes from './ObjectsTable.module.css'
 
 export interface ObjectsColumn<T> {
@@ -15,60 +17,13 @@ export interface ObjectsColumn<T> {
   sortValue: (row: T) => string | number | undefined
 }
 
-export interface TableColumnData {
-  name: string
-  selected?: boolean
-  sort: string
-}
-
-export interface TableData {
-  columns: TableColumnData[]
-  sort: {index: number, reverse: boolean}
-}
-
-export function tableDataDefaults(columns: Array<{name: string, selected?: boolean}>): TableData {
-  return {
-    columns: columns.map((column, index) => ({...column, sort: index === 0 ? 'sort-asc' : 'none'}))
-    , sort: {index: 0, reverse: false}
-  }
-}
-
-function isCompatible(data: TableData | undefined, defaults: TableData): data is TableData {
-  return Boolean(
-    data?.columns && data.sort &&
-    data.columns.length === defaults.columns.length &&
-    data.columns.every((column, index) => column.name === defaults.columns[index].name)
-  )
-}
-
-function sortBy(data: TableData, index: number): TableData {
-  const columns = data.columns.map((column) => ({...column}))
-  if (index !== data.sort.index) {
-    columns[index].sort = 'sort-asc'
-    if (columns[data.sort.index]) {
-      columns[data.sort.index].sort = 'none'
-    }
-    return {columns, sort: {index, reverse: false}}
-  }
-  columns[index].sort = columns[index].sort === 'sort-asc' ? 'sort-desc' : 'sort-asc'
-  return {columns, sort: {index, reverse: !data.sort.reverse}}
-}
+const collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'})
 
 function compareValues(a: string | number | undefined, b: string | number | undefined): number {
   if (typeof a === 'number' && typeof b === 'number') {
     return a - b
   }
-  return String(a ?? '').localeCompare(String(b ?? ''), undefined, {numeric: true, sensitivity: 'base'})
-}
-
-function SortIcon({state}: {state: string}) {
-  if (state === 'sort-asc') {
-    return <IconChevronUp size={14} />
-  }
-  if (state === 'sort-desc') {
-    return <IconChevronDown size={14} />
-  }
-  return <IconSelector size={14} className={classes.idleSort} />
+  return collator.compare(String(a ?? ''), String(b ?? ''))
 }
 
 export interface ObjectsTableProps<T> {
@@ -103,14 +58,14 @@ export function ObjectsTable<T>({
   , withSelection = true
 }: ObjectsTableProps<T>) {
   const {t} = useTranslation()
-  const [storedData, setData] = useSetting<TableData>(settingKey, defaultData)
-  const data = isCompatible(storedData, defaultData) ? storedData : defaultData
+  const [storedData, setData] = useSetting<unknown>(settingKey, defaultData)
+  const data = normalizeTableData(storedData, defaultData)
   const [search, setSearch] = useState('')
   const [perPage, setPerPage] = useState(defaultItemsPerPage.value)
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
 
   const filtered = useMemo(() => {
-    const matching = rows.filter((row) => matchesSearch(row, search))
+    const matching = searchFilter(rows, search).slice()
     const column = columns[data.sort.index]
     if (!column) {
       return matching
@@ -126,19 +81,6 @@ export function ObjectsTable<T>({
   const visibleColumns = columns
     .map((column, index) => ({column, index}))
     .filter(({index}) => data.columns[index]?.selected !== false)
-
-  function toggleRow(key: string) {
-    setSelected((current) => {
-      const next = new Set(current)
-      if (next.has(key)) {
-        next.delete(key)
-      }
-      else {
-        next.add(key)
-      }
-      return next
-    })
-  }
 
   function clearSelection() {
     setSelected(new Set())
@@ -169,10 +111,7 @@ export function ObjectsTable<T>({
                 , label: t(column.name)
                 , selected: column.selected !== false
               }))}
-              onChange={(items) => setData({
-                ...data
-                , columns: data.columns.map((column, index) => ({...column, selected: items[index].selected}))
-              })}
+              onChange={(items) => setData(selectColumns(data, items.map((item) => item.selected)))}
               onReset={() => setData(defaultData)}
             />
           )}
@@ -210,10 +149,10 @@ export function ObjectsTable<T>({
                   <Table.Th key={column.name}>
                     <UnstyledButton
                       className={classes.sortHeader}
-                      onClick={() => setData(sortBy(data, index))}
+                      onClick={() => setData(toggleSort(data, index))}
                     >
                       <span>{t(column.name)}</span>
-                      <SortIcon state={data.sort.index === index ? data.columns[index].sort : 'none'} />
+                      <SortIcon sort={sortState(data, index)} />
                     </UnstyledButton>
                   </Table.Th>
                 ))}
@@ -237,7 +176,7 @@ export function ObjectsTable<T>({
                           aria-label={key}
                           disabled={!isSelectable}
                           checked={isSelectable && selected.has(key)}
-                          onChange={() => toggleRow(key)}
+                          onChange={() => setSelected((current) => toggled(current, key))}
                         />
                       </Table.Td>
                     )}

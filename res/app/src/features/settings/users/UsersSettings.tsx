@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react'
+import {Fragment, useMemo, useState} from 'react'
 import {
   ActionIcon
   , Badge
@@ -32,26 +32,19 @@ import {
 } from '@tabler/icons-react'
 import sortBy from 'lodash/sortBy'
 import {appState} from '@/core/app-state'
-import {
-  addItem
-  , addItems
-  , getItem
-  , listOf
-  , removeItem
-  , updateItem
-  , type Collection
-} from '@/core/collection'
+import {getItem, listOf} from '@/core/collection'
 import {getDuration} from '@/core/common'
 import {useTranslation} from '@/core/i18n'
 import {useSetting} from '@/core/settings'
-import {useSocketEvent} from '@/core/socket'
-import {usersApi, type UserRemovalFilters} from '@/core/users-api'
+import {userSettingsEvents, usersApi, userViewEvents, type UserRemovalFilters} from '@/core/users-api'
 import {mailTo} from '@/ui/mail'
 import {errorMessage, openConfirm, withErrorModal} from '@/ui/modals'
 import {NothingToShow} from '@/ui/NothingToShow'
 import {PageControls, PerPageSelect, SearchInput, useItemsPerPage, usePaged} from '@/ui/Pager'
-import {matchesSearch} from '@/ui/paging'
+import {searchFilter} from '@/ui/paging'
+import {toggled} from '@/ui/selection'
 import type {SettingsUser} from '../groups/types'
+import {useLiveCollection, type LiveCollectionSource} from '../use-live-collection'
 import {CreateUserForm} from './CreateUserForm'
 import {QuotasForm, type QuotaValues} from './QuotasForm'
 import classes from './UsersSettings.module.css'
@@ -60,37 +53,19 @@ const usersFields = 'email,name,privilege,groups.quotas'
 const removingFilterOptions = ['True', 'False', 'Any']
 const defaultRemovingFilters: UserRemovalFilters = {groupOwner: 'False'}
 
-interface UserChangeMessage {
-  user: SettingsUser
-  timeStamp: number
-}
+const [createdEvent, deletedEvent, updatedEvent] = userSettingsEvents
+const [viewUpdatedEvent] = userViewEvents
 
-function useUsers() {
-  const [users, setUsers] = useState<Collection<SettingsUser>>({})
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    usersApi.getUsers(usersFields)
-      .then((response) => {
-        setUsers((current) => addItems(current, response.users as SettingsUser[], (user) => user.email, -1))
-      })
-      .catch((error) => notifications.show({color: 'red', message: errorMessage(error)}))
-      .finally(() => setLoading(false))
-  }, [])
-
-  useSocketEvent('user.settings.users.created', (message: UserChangeMessage) => {
-    setUsers((current) => addItem(current, message.user.email, message.user, message.timeStamp).collection)
-  })
-  useSocketEvent('user.settings.users.deleted', (message: UserChangeMessage) => {
-    setUsers((current) => removeItem(current, message.user.email, message.timeStamp).collection)
-  })
-  function onUpdated(message: UserChangeMessage) {
-    setUsers((current) => updateItem(current, message.user.email, message.user, message.timeStamp).collection)
-  }
-  useSocketEvent('user.settings.users.updated', onUpdated)
-  useSocketEvent('user.view.users.updated', onUpdated)
-
-  return {users, loading}
+const usersSource: LiveCollectionSource<SettingsUser> = {
+  load: () => usersApi.getUsers(usersFields)
+    .then((response) => response.users as SettingsUser[])
+    .catch((error) => {
+      notifications.show({color: 'red', message: errorMessage(error)})
+      return []
+    })
+  , keyOf: (user) => user.email
+  , itemOf: (message: {user: SettingsUser}) => message.user
+  , events: {created: createdEvent, deleted: deletedEvent, updated: [updatedEvent, viewUpdatedEvent]}
 }
 
 function userQuotas(user: SettingsUser): QuotaValues {
@@ -159,7 +134,7 @@ function RemovingFilters({filters, onChange}: {
 
 export default function UsersSettings() {
   const {t} = useTranslation()
-  const {users, loading} = useUsers()
+  const {collection: users, loading} = useLiveCollection(usersSource)
   const list = useMemo(() => sortBy(listOf(users), (user) => user.name.toLowerCase()), [users])
   const adminUser = getItem(users, appState.user.email)
   const [storedFilters, setFilters] = useSetting<UserRemovalFilters>('UsersRemovingFilters', defaultRemovingFilters)
@@ -172,24 +147,11 @@ export default function UsersSettings() {
   const [showCreate, setShowCreate] = useState(false)
   const [showDefaults, setShowDefaults] = useState(false)
 
-  const filtered = list.filter((user) => matchesSearch(user, search))
+  const filtered = searchFilter(list, search)
   const {items: pageItems, page, pageCount, setPage} = usePaged(filtered, perPage)
   const selectedUsers = filtered.filter((user) => checked.has(user.email))
   const removableUsers = selectedUsers.filter((user) => user.privilege !== 'admin')
   const allChecked = filtered.length > 0 && selectedUsers.length === filtered.length
-
-  function toggle(setter: typeof setChecked, email: string) {
-    setter((current) => {
-      const next = new Set(current)
-      if (next.has(email)) {
-        next.delete(email)
-      }
-      else {
-        next.add(email)
-      }
-      return next
-    })
-  }
 
   async function removeUser(user: SettingsUser) {
     if (confirmRemove &&
@@ -352,7 +314,7 @@ export default function UsersSettings() {
                           size='xs'
                           aria-label={user.email}
                           checked={checked.has(user.email)}
-                          onChange={() => toggle(setChecked, user.email)}
+                          onChange={() => setChecked((current) => toggled(current, user.email))}
                         />
                       </Table.Td>
                       <Table.Td>
@@ -376,7 +338,7 @@ export default function UsersSettings() {
                             variant={open ? 'filled' : 'light'}
                             leftSection={<IconAdjustments size={12} />}
                             aria-expanded={open}
-                            onClick={() => toggle(setExpanded, user.email)}
+                            onClick={() => setExpanded((current) => toggled(current, user.email))}
                           >
                             {t('Groups Quotas')}
                           </Button>

@@ -30,9 +30,9 @@ export const classOptions: ClassOption[] = [
   , {name: gettext('Standard'), id: 'standard', privilege: 'admin', duration: Infinity}
 ]
 
-export function getClassName(id: string): string {
+export function getClassName(id: string, language?: string): string {
   const option = classOptions.find((candidate) => candidate.id === id)
-  return option ? translate(option.name) : ''
+  return option ? translate(option.name, undefined, language) : ''
 }
 
 export function getClassDuration(id: string): number | '' {

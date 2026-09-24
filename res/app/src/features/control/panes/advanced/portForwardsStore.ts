@@ -1,5 +1,5 @@
-import {create} from 'zustand'
 import {v4 as uuidv4} from 'uuid'
+import {createDeviceStore} from '@/core/device-store'
 import type {Device} from '@/core/devices/types'
 
 export interface ForwardRow {
@@ -24,39 +24,23 @@ function defaults(id: string): ForwardRow {
   }
 }
 
-const initialRows = [defaults('_default')]
-
-interface PortForwardsState {
-  rows: Record<string, ForwardRow[]>
-}
-
-export const usePortForwardsStore = create<PortForwardsState>(() => ({rows: {}}))
-
-export function forwardRows(state: PortForwardsState, serial: string): ForwardRow[] {
-  return state.rows[serial] || initialRows
-}
-
-function setRows(serial: string, next: (rows: ForwardRow[]) => ForwardRow[]) {
-  usePortForwardsStore.setState((state) => ({
-    rows: {...state.rows, [serial]: next(forwardRows(state, serial))}
-  }))
-}
+export const forwardRowsStore = createDeviceStore<ForwardRow[]>([defaults('_default')])
 
 export function addForwardRow(serial: string) {
-  setRows(serial, (rows) => rows.concat(defaults(uuidv4())))
+  forwardRowsStore.update(serial, (rows) => rows.concat(defaults(uuidv4())))
 }
 
 export function removeForwardRow(serial: string, id: string) {
-  setRows(serial, (rows) => rows.filter((row) => row.id !== id))
+  forwardRowsStore.update(serial, (rows) => rows.filter((row) => row.id !== id))
 }
 
 export function updateForwardRow(serial: string, id: string, patch: Partial<ForwardRow>) {
-  setRows(serial, (rows) => rows.map((row) => (row.id === id ? {...row, ...patch} : row)))
+  forwardRowsStore.update(serial, (rows) => rows.map((row) => (row.id === id ? {...row, ...patch} : row)))
 }
 
 export function syncForwardRows(serial: string, forwards: DeviceForward[]) {
   const byId = new Map(forwards.map((forward) => [forward.id, forward]))
-  setRows(serial, (rows) => {
+  forwardRowsStore.update(serial, (rows) => {
     const known = new Set(rows.map((row) => row.id))
     const synced = rows.map((row) => {
       const deviceForward = byId.get(row.id)

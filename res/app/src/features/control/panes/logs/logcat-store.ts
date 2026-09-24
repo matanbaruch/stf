@@ -32,6 +32,10 @@ export function useDeviceLogs(serial: string): DeviceLogs {
   return useLogcatStore((state) => state.devices[serial]) || emptyDeviceLogs
 }
 
+export function currentLogEntries(serial: string): LogEntry[] {
+  return (useLogcatStore.getState().devices[serial] || emptyDeviceLogs).entries
+}
+
 function updateDevice(serial: string, update: (current: DeviceLogs) => Partial<DeviceLogs>): void {
   useLogcatStore.setState((state) => {
     const current = state.devices[serial] || emptyDeviceLogs

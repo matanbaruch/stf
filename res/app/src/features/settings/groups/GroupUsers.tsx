@@ -5,9 +5,10 @@ import {getItem, listOf} from '@/core/collection'
 import type {Group as StfGroup} from '@/core/groups-api'
 import {gettext, useTranslation} from '@/core/i18n'
 import {mailTo} from '@/ui/mail'
+import {tableDataDefaults} from '@/ui/table-model'
 import {addGroupUser, addGroupUsers, removeGroupUser, removeGroupUsers} from './actions'
 import {canRemoveGroupUser} from './rules'
-import {ObjectsTable, tableDataDefaults, type ObjectsColumn} from './shared/ObjectsTable'
+import {ObjectsTable, type ObjectsColumn} from './shared/ObjectsTable'
 import {useGroupsStore} from './store'
 import type {SettingsUser} from './types'
 import classes from './GroupsSettings.module.css'
@@ -56,10 +57,10 @@ export function GroupUsers({group}: {group: StfGroup}) {
     () => group.users.map((email) => getItem(users, email)).filter((user) => Boolean(user)) as SettingsUser[]
     , [group.users, users]
   )
-  const availableUsers = useMemo(
-    () => listOf(users).filter((user) => !group.users.includes(user.email))
-    , [group.users, users]
-  )
+  const availableUsers = useMemo(() => {
+    const members = new Set(group.users)
+    return listOf(users).filter((user) => !members.has(user.email))
+  }, [group.users, users])
 
   return (
     <Tabs value={view} onChange={(value) => value && setView(value)} variant='pills' keepMounted={false}>

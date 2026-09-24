@@ -1,7 +1,7 @@
 import {api} from './api'
 import type {Control} from './control'
 import {createDeviceStore} from './device-store'
-import {gettext} from './i18n'
+import {gettext, translate} from './i18n'
 import {storeFiles, storeUrl} from './storage'
 
 export interface ManifestIntentData {
@@ -38,9 +38,7 @@ export interface Installation {
   settled: boolean
   success: boolean
   error: string | null
-  href: string | null
   manifest: Manifest | null
-  launch: boolean
 }
 
 interface StoredResource {
@@ -51,7 +49,7 @@ export type InstallationListener = (installation: Installation) => void
 
 export const installationStore = createDeviceStore<Installation | null>(null)
 
-export const installStateLabels: Record<string, string> = {
+const installStateLabels: Record<string, string> = {
   downloading: gettext('Downloading...')
   , uploading: gettext('Uploading...')
   , processing: gettext('Processing...')
@@ -71,9 +69,7 @@ function startInstallation(serial: string, state: string, onChange?: Installatio
     , settled: false
     , success: false
     , error: null
-    , href: null
     , manifest: null
-    , launch: true
   }
 
   installationStore.set(serial, installation)
@@ -86,8 +82,7 @@ function startInstallation(serial: string, state: string, onChange?: Installatio
   }
 
   return {
-    launch: installation.launch
-    , patch
+    patch
     , current: () => installation
     , update: (progress: number, nextState: string) => patch({progress: Math.floor(progress), state: nextState})
     , okay: (nextState: string) => patch({settled: true, progress: 100, success: true, state: nextState})
@@ -107,7 +102,7 @@ async function fetchManifest(href: string): Promise<Manifest> {
 
 async function installStored(control: Control, installation: Tracker, href: string, manifest: Manifest) {
   installation.patch({manifest})
-  await control.install({href, manifest, launch: installation.launch})
+  await control.install({href, manifest, launch: true})
     .progressed((result) => installation.update(50 + result.progress / 2, result.lastData))
 }
 
@@ -121,7 +116,6 @@ export async function installUrl(control: Control, url: string): Promise<void> {
     const response = await storeUrl<{resource: StoredResource}>('apk', url)
     installation.update(100 / 2, 'processing')
     const href = response.resource.href
-    installation.patch({href})
     await installStored(control, installation, href, await fetchManifest(href))
     installation.okay('installed')
   }
@@ -144,7 +138,6 @@ export async function installFile(
     })
     installation.update(100 / 2, 'processing')
     const href = response.resources.file.href
-    installation.patch({href})
     const manifest = ios ? {application: {activities: {}}} : await fetchManifest(href)
     await installStored(control, installation, href, manifest)
     installation.okay('installed')
@@ -203,6 +196,12 @@ const installErrors: Record<string, string> = {
   , INSTALL_FAILED_NO_MATCHING_ABIS: gettext('The system failed to install the package because its packaged native code did not match any of the ABIs supported by the system.')
 }
 
-export function installErrorMessage(code: string): string {
-  return installErrors[code] ?? code
+export function installStateText(state: string): string {
+  const label = installStateLabels[state]
+  return label ? translate(label) : state
+}
+
+export function installFailureText(code: string): string {
+  const message = translate(installErrors[code] ?? code)
+  return message === code ? message : `${message} (${code})`
 }

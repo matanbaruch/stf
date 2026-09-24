@@ -27,8 +27,6 @@ export const groupsApi = {
     api.get<{users: any[]}>(`/api/v1/groups/${id}/users?fields=${fields}`)
   , getGroupDevices: (id: string, bookable: boolean, fields: string) =>
     api.get<{devices: Device[]}>(`/api/v1/groups/${id}/devices?bookable=${bookable}&fields=${fields}`)
-  , getGroupDevice: (id: string, serial: string, fields: string) =>
-    api.get<{device: Device}>(`/api/v1/groups/${id}/devices/${serial}?fields=${fields}`)
   , addGroupDevice: (id: string, serial: string) =>
     api.put(`/api/v1/groups/${id}/devices/${serial}`)
   , addGroupDevices: (id: string, serials?: string[]) =>

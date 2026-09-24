@@ -82,24 +82,29 @@ export function nextSort(sort: SortSetting, name: string, multiple: boolean): So
   return {...sort, user: multiple ? sort.user.concat(added) : [added]}
 }
 
-export function matchDevice(device: Device, terms: QueryTerm[], activeColumns: string[]): boolean {
+export function matchDevice(
+  device: Device
+, terms: QueryTerm[]
+, activeColumns: string[]
+, language: string
+): boolean {
   return terms.every((term) => {
     if (term.field) {
       const column = columnDefinition(term.field)
-      return !column || column.filter(device, term)
+      return !column || column.filter(device, term, language)
     }
-    return activeColumns.some((name) => columnDefinition(name)?.filter(device, term))
+    return activeColumns.some((name) => columnDefinition(name)?.filter(device, term, language))
   })
 }
 
-export function deviceComparator(entries: SortEntry[]): (a: Device, b: Device) => number {
+export function deviceComparator(entries: SortEntry[], language: string): (a: Device, b: Device) => number {
   const resolved = entries.flatMap((entry) => {
     const column = columnDefinition(entry.name)
     return column ? [{compare: column.compare, direction: entry.order === 'desc' ? -1 : 1}] : []
   })
   return (a, b) => {
     for (const {compare, direction} of resolved) {
-      const diff = compare(a, b)
+      const diff = compare(a, b, language)
       if (diff !== 0) {
         return diff * direction
       }

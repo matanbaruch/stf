@@ -2,14 +2,19 @@ import {useEffect} from 'react'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
 import type {User} from '@/core/app-state'
 import {deviceSettingsEvents} from '@/core/devices-api'
-import {groupsApi, type Group} from '@/core/groups-api'
+import {groupsApi, groupViewEvents, type Group} from '@/core/groups-api'
 import {onSocket, useSocketEvent} from '@/core/socket'
 import {currentUser, getUser} from '@/core/user'
+import {userSettingsEvents, userViewEvents} from '@/core/users-api'
 
 const groupsKey = ['group-list', 'groups']
 const userKey = ['group-list', 'user']
 export const groupDevicesKey = (id: string) => ['group-list', 'devices', id]
 export const groupUsersKey = (id: string) => ['group-list', 'users', id]
+const memberInvalidationDelay = 400
+const [groupCreatedEvent, groupDeletedEvent, groupUpdatedEvent] = groupViewEvents
+const [userCreatedEvent, userDeletedEvent] = userSettingsEvents
+const [userUpdatedEvent] = userViewEvents
 
 interface GroupMessage {
   group: Group
@@ -47,15 +52,15 @@ export function useViewGroups() {
     queryClient.setQueryData<Group[]>(groupsKey, update)
   }
 
-  useSocketEvent('user.view.groups.created', (message: GroupMessage) => {
+  useSocketEvent(groupCreatedEvent, (message: GroupMessage) => {
     setGroups((current) => upsert(current, message.group))
   })
 
-  useSocketEvent('user.view.groups.deleted', (message: GroupMessage) => {
+  useSocketEvent(groupDeletedEvent, (message: GroupMessage) => {
     setGroups((current) => remove(current, message.group.id))
   })
 
-  useSocketEvent('user.view.groups.updated', (message: GroupMessage) => {
+  useSocketEvent(groupUpdatedEvent, (message: GroupMessage) => {
     if (!message.group.users.includes(currentUser.email)) {
       setGroups((current) => remove(current, message.group.id))
       return
@@ -70,14 +75,26 @@ export function useViewGroups() {
   })
 
   useEffect(() => {
-    const invalidateUsers = () => queryClient.invalidateQueries({queryKey: ['group-list', 'users']})
-    const invalidateDevices = () => queryClient.invalidateQueries({queryKey: ['group-list', 'devices']})
+    const timers = new Map<string, ReturnType<typeof setTimeout>>()
+    function invalidateSoon(members: 'users' | 'devices') {
+      if (!timers.has(members)) {
+        timers.set(members, setTimeout(() => {
+          timers.delete(members)
+          queryClient.invalidateQueries({queryKey: ['group-list', members]})
+        }, memberInvalidationDelay))
+      }
+    }
+    const invalidateUsers = () => invalidateSoon('users')
+    const invalidateDevices = () => invalidateSoon('devices')
     const unsubscribers = [
-      onSocket('user.settings.users.created', invalidateUsers)
-      , onSocket('user.settings.users.deleted', invalidateUsers)
+      onSocket(userCreatedEvent, invalidateUsers)
+      , onSocket(userDeletedEvent, invalidateUsers)
       , ...deviceSettingsEvents.map((event) => onSocket(event, invalidateDevices))
     ]
-    return () => unsubscribers.forEach((unsubscribe) => unsubscribe())
+    return () => {
+      unsubscribers.forEach((unsubscribe) => unsubscribe())
+      timers.forEach(clearTimeout)
+    }
   }, [queryClient])
 
   return groups
@@ -92,7 +109,7 @@ export function useQuotaUser() {
     , staleTime: 0
   })
 
-  useSocketEvent('user.view.users.updated', (message: {user: User}) => {
+  useSocketEvent(userUpdatedEvent, (message: {user: User}) => {
     if (message.user?.email === currentUser.email) {
       queryClient.setQueryData(userKey, message.user)
     }

@@ -1,3 +1,4 @@
+import type {AlertMessage} from './alert-message'
 import {api} from './api'
 import type {User} from './app-state'
 
@@ -11,7 +12,7 @@ function removalQuery(filters: UserRemovalFilters): string {
 
 export const usersApi = {
   getUsers: (fields: string) => api.get<{users: User[]}>(`/api/v1/users?fields=${fields}`)
-  , getUsersAlertMessage: () => api.get<{alertMessage: any}>('/api/v1/users/alertMessage')
+  , getUsersAlertMessage: () => api.get<{alertMessage: AlertMessage}>('/api/v1/users/alertMessage')
   , getUser: (email: string, fields: string) =>
     api.get<{user: User}>(`/api/v1/users/${email}?fields=${fields}`)
   , removeUser: (email: string, filters: UserRemovalFilters) =>

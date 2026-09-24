@@ -1,5 +1,5 @@
-import {lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType} from 'react'
-import {Navigate, useNavigate, useParams} from 'react-router'
+import {lazy, Suspense, useEffect, useEffectEvent, useMemo, useRef, useState, type ComponentType} from 'react'
+import {useNavigate, useParams} from 'react-router'
 import {
   Box
   , Button
@@ -31,10 +31,11 @@ import {likelyLeaveReason} from '@/core/devices/enhance'
 import type {Device} from '@/core/devices/types'
 import {inviteDevice} from '@/core/group'
 import {gettext, useTranslation} from '@/core/i18n'
-import {getSetting, setSetting, useSetting} from '@/core/settings'
+import {setSetting, useSetting} from '@/core/settings'
 import {basicMode, useStandalone} from '@/ui/modes'
 import {usePageTitle} from '@/ui/page-title'
 import {stateColor} from '@/ui/device-state'
+import {ControlRedirect} from './ControlRedirect'
 import DeviceControlPanel from './device-control/DeviceControlPanel'
 import type {PaneProps} from './types'
 import classes from './ControlPage.module.css'
@@ -208,11 +209,6 @@ function ControlWorkspace({device, control}: PaneProps) {
   )
 }
 
-export function ControlRedirect() {
-  const lastUsedDevice = getSetting<string | undefined>('lastUsedDevice')
-  return <Navigate to={lastUsedDevice ? `/control/${lastUsedDevice}` : '/'} replace />
-}
-
 export default function ControlPage() {
   const {serial} = useParams()
   return <ControlSession key={serial} />
@@ -226,8 +222,11 @@ function ControlSession() {
   const {device, loading, error} = useDevice(serial)
   const [joined, setJoined] = useState<Device | null>(null)
   const [lost, setLost] = useState(false)
-  const [attempt, setAttempt] = useState(0)
   const previousState = useRef<string | null>(null)
+  const loadedSerial = device?.serial
+  const deviceState = device?.state
+  const latestDevice = useEffectEvent(() => device)
+  const leaveToDeviceList = useEffectEvent(() => navigate('/', {replace: true}))
 
   usePageTitle(joined ? device?.enhancedName || joined.enhancedName : null)
 
@@ -238,38 +237,39 @@ function ControlSession() {
   }, [error, navigate])
 
   useEffect(() => {
-    if (!device || joined) {
+    const target = latestDevice()
+    if (!target || joined) {
       return
     }
     let active = true
-    inviteDevice(device)
+    inviteDevice(target)
       .then(() => {
         if (active) {
-          setJoined(device)
-          setSetting('lastUsedDevice', device.serial)
+          setJoined(target)
+          setSetting('lastUsedDevice', target.serial)
         }
       })
       .catch(() => {
         if (active) {
-          navigate('/', {replace: true})
+          leaveToDeviceList()
         }
       })
     return () => {
       active = false
     }
-  }, [device?.serial, joined, attempt])
+  }, [loadedSerial, joined])
 
   useEffect(() => {
-    if (!device || !joined) {
+    if (!deviceState || !joined) {
       return
     }
     const previous = previousState.current
-    previousState.current = device.state
-    if (previous && previous !== device.state &&
+    previousState.current = deviceState
+    if (previous && previous !== deviceState &&
         (previous === 'using' || previous === 'automation')) {
       setLost(true)
     }
-  }, [device?.state, joined])
+  }, [deviceState, joined])
 
   const control: Control | null = useMemo(
     () => (joined ? createControl(joined, joined.channel) : null)
@@ -305,7 +305,6 @@ function ControlSession() {
             setLost(false)
             previousState.current = null
             setJoined(null)
-            setAttempt((value) => value + 1)
           }}
           onLeave={() => {
             setLost(false)

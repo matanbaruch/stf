@@ -24,8 +24,6 @@ function removalQuery(filters: DeviceRemovalFilters): string {
 export const devicesApi = {
   getDevices: (target: string, fields: string) =>
     api.get<{devices: Device[]}>(`/api/v1/devices?target=${target}&fields=${fields}`)
-  , getDevice: (serial: string, fields: string) =>
-    api.get<{device: Device}>(`/api/v1/devices/${serial}?fields=${fields}`)
   , removeDevice: (serial: string, filters: DeviceRemovalFilters) =>
     api.delete(`/api/v1/devices/${serial}${removalQuery(filters)}`)
   , removeDevices: (filters: DeviceRemovalFilters, serials?: string[]) =>

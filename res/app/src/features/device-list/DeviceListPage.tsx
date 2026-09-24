@@ -58,13 +58,15 @@ export default function DeviceListPage() {
   const terms = useMemo(() => parseQuery(query), [query])
 
   const filtered = useMemo(
-    () => (terms.length ? devices.filter((device) => matchDevice(device, terms, activeColumns)) : devices)
+    () => (terms.length ?
+      devices.filter((device) => matchDevice(device, terms, activeColumns, language)) :
+      devices)
     , [devices, terms, activeColumns, language]
   )
 
-  const iconDevices = useMemo(
-    () => (view === 'icons' ? filtered.slice().sort(deviceComparator(sortEntries(sort))) : filtered)
-    , [filtered, sort, view, language]
+  const sorted = useMemo(
+    () => filtered.slice().sort(deviceComparator(sortEntries(sort), language))
+    , [filtered, sort, language]
   )
 
   const context = useMemo<CellContext>(() => ({
@@ -104,13 +106,13 @@ export default function DeviceListPage() {
       <>
         {view === 'details' ?
           <DeviceTable
-            devices={filtered}
-            columns={columns}
+            devices={sorted}
+            columnIds={activeColumns}
             sort={sort}
             onSort={(name, multiple) => setStoredSort(nextSort(sort, name, multiple))}
             context={context}
           /> :
-          <DeviceIconsView devices={iconDevices} actions={actions} />}
+          <DeviceIconsView devices={sorted} actions={actions} />}
         {!filtered.length && (
           <NothingToShow message={t('No results')} icon={<IconSearch size={30} />} />
         )}

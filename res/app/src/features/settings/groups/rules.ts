@@ -5,7 +5,7 @@ import type {Group} from '@/core/groups-api'
 import type {ConflictRow, ServerConflict, SettingsDevice, SettingsUser} from './types'
 
 export const groupNameRegex = /^[0-9a-zA-Z-_./: ]{1,50}$/
-export const groupNameRegexStr = '/^[0-9a-zA-Z-_./: ]{1,50}$/'
+export const groupNameRegexStr = String(groupNameRegex)
 
 export interface ScheduleDraft {
   groupClass: string

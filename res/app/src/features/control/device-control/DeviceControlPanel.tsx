@@ -45,7 +45,7 @@ export default function DeviceControlPanel({device, control, standalone}: PanePr
   }
 
   const stage = (
-    <DeviceContextMenu device={device} control={control} actions={actions}>
+    <DeviceContextMenu device={device} control={control} onStopUsing={() => actions.stopUsing(device)}>
       <div
         className={`${classes.stage} ${dragOver ? `${classes.dragover} dragover` : ''}`}
         onDragOver={onDragOver}

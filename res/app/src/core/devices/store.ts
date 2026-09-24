@@ -1,4 +1,4 @@
-import {useEffect, useState, useSyncExternalStore} from 'react'
+import {useEffect, useEffectEvent, useState, useSyncExternalStore} from 'react'
 import {api} from '../api'
 import {mergeObject} from '../collection'
 import {emit, onSocket} from '../socket'
@@ -31,6 +31,19 @@ export async function loadDevices(url: string): Promise<Device[]> {
   return response.devices || []
 }
 
+const pendingDeviceLoads = new Map<string, Promise<Device | null>>()
+
+function loadDeviceShared(serial: string): Promise<Device | null> {
+  let pending = pendingDeviceLoads.get(serial)
+  if (!pending) {
+    pending = loadDevice(serial)
+      .catch(() => null)
+      .finally(() => pendingDeviceLoads.delete(serial))
+    pendingDeviceLoads.set(serial, pending)
+  }
+  return pending
+}
+
 export function updateDeviceNote(serial: string, note: string): void {
   emit('device.note', {serial, note})
 }
@@ -45,7 +58,7 @@ export class DeviceTracker {
   private frame: number | null = null
   private lastFlush = 0
 
-  constructor(private filter: Filter) {
+  constructor(private filter: Filter, private serial?: string) {
     this.unsubscribers.push(
       onSocket('device.add', (event: DeviceEvent) => this.onAdd(event))
       , onSocket('device.remove', (event: DeviceEvent) => this.onChange(event))
@@ -115,10 +128,8 @@ export class DeviceTracker {
     }
   }
 
-  private insert(data: Partial<Device>): Device {
-    const device = this.build(data)
+  private insert(device: Device) {
     this.bySerial.set(device.serial, this.devices.push(device) - 1)
-    return device
   }
 
   private build(data: Partial<Device>): Device {
@@ -170,9 +181,11 @@ export class DeviceTracker {
     if (device) {
       this.replace(device, event.data)
       this.notify(event.important)
+      return
     }
-    else if (this.filter(this.build(event.data))) {
-      this.insert(event.data)
+    const built = this.build(event.data)
+    if (this.filter(built)) {
+      this.insert(built)
       this.notify(event.important)
     }
   }
@@ -186,11 +199,11 @@ export class DeviceTracker {
   }
 
   private async onAddGroupDevices(event: GroupDevicesEvent) {
-    const devices = await Promise.all(event.devices.map((serial) =>
-      loadDevice(serial).catch(() => null)))
+    const serials = this.serial ? event.devices.filter((serial) => serial === this.serial) : event.devices
+    const devices = await Promise.all(serials.map(loadDeviceShared))
     for (const device of devices) {
       if (device && !this.bySerial.has(device.serial)) {
-        this.insert(device)
+        this.insert(this.build(device))
         this.notify(event.important)
       }
     }
@@ -212,19 +225,41 @@ interface SharedTracker {
   ready: Promise<void>
   loaded: boolean
   error: unknown
+  keepAlive: boolean
+  releaseTimer?: ReturnType<typeof setTimeout>
 }
+
+export const releaseGracePeriod = 10000
 
 const shared = new Map<string, SharedTracker>()
 
-function acquire(key: string, filter: Filter, load: () => Promise<Device[]>): SharedTracker {
+interface TrackerOptions {
+  serial?: string
+  keepAlive?: boolean
+}
+
+function acquire(
+  key: string
+, filter: Filter
+, load: () => Promise<Device[]>
+, {serial, keepAlive = true}: TrackerOptions
+): SharedTracker {
   let entry = shared.get(key)
+  if (entry && entry.refs === 0) {
+    clearTimeout(entry.releaseTimer)
+    if (entry.error) {
+      entry.tracker.destroy()
+      entry = undefined
+    }
+  }
   if (!entry) {
-    const tracker = new DeviceTracker(filter)
+    const tracker = new DeviceTracker(filter, serial)
     const created: SharedTracker = {
       tracker
       , refs: 0
       , loaded: false
       , error: null
+      , keepAlive
       , ready: Promise.resolve()
     }
     created.ready = load()
@@ -250,9 +285,18 @@ function release(key: string): void {
     return
   }
   entry.refs -= 1
-  if (entry.refs <= 0) {
+  if (entry.refs > 0) {
+    return
+  }
+  const drop = () => {
     entry.tracker.destroy()
     shared.delete(key)
+  }
+  if (entry.keepAlive) {
+    entry.releaseTimer = setTimeout(drop, releaseGracePeriod)
+  }
+  else {
+    drop()
   }
 }
 
@@ -269,15 +313,17 @@ function useTracker(
   key: string | null
 , filter: Filter
 , load: () => Promise<Device[]>
+, options: TrackerOptions = {}
 ): TrackedDevices {
   const [entry, setEntry] = useState<SharedTracker | null>(null)
   const [loading, setLoading] = useState(true)
+  const acquireTracker = useEffectEvent((trackerKey: string) => acquire(trackerKey, filter, load, options))
 
   useEffect(() => {
     if (!key) {
       return undefined
     }
-    const acquired = acquire(key, filter, load)
+    const acquired = acquireTracker(key)
     setEntry(acquired)
     setLoading(!acquired.loaded)
     let active = true
@@ -309,6 +355,7 @@ export function useUserDevices(): TrackedDevices {
     'user'
     , (device) => Boolean(device.using)
     , () => loadDevices('/api/v1/user/devices')
+    , {keepAlive: false}
   )
 }
 
@@ -321,6 +368,7 @@ export function useDevice(serial: string | undefined): {
     serial ? `serial:${serial}` : null
     , (device) => device.serial === serial
     , async() => (serial ? [await loadDevice(serial)] : [])
+    , {serial}
   )
   return {device: devices[0], loading, error}
 }

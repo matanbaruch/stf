@@ -1,12 +1,12 @@
 import {StrictMode} from 'react'
 import {createRoot} from 'react-dom/client'
-import {Providers} from '@/ui/Providers'
-import SignIn from '@/features/auth/ldap/SignIn'
+import {AuthProviders} from '@/ui/AuthProviders'
+import {SignInForm} from '@/features/auth/SignInForm'
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
-    <Providers>
-      <SignIn />
-    </Providers>
+    <AuthProviders>
+      <SignInForm mode='ldap' />
+    </AuthProviders>
   </StrictMode>
 )

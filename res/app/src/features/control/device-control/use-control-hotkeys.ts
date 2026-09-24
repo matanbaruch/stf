@@ -13,8 +13,8 @@ export function useControlHotkeys(control: Control, actions: DeviceActions) {
   useHotkeys([
     ['meta+shift+D', () => navigate('/devices')]
     , ['shift+space', () => control.keyPress('switch_charset')]
-    , ['meta+ArrowLeft', actions.rotateLeft]
-    , ['meta+ArrowRight', actions.rotateRight]
+    , ['meta+ArrowLeft', () => actions.rotateBy(-90)]
+    , ['meta+ArrowRight', () => actions.rotateBy(90)]
     , ['meta+shift+M', () => control.menu()]
     , ['meta+shift+H', () => control.home()]
     , ['meta+shift+B', () => control.back()]

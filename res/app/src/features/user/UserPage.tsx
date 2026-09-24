@@ -18,6 +18,7 @@ import {appState} from '@/core/app-state'
 import {useTranslation} from '@/core/i18n'
 import {usersApi} from '@/core/users-api'
 import {NothingToShow} from '@/ui/NothingToShow'
+import {Page} from '@/ui/Page'
 import {usePageTitle} from '@/ui/page-title'
 import classes from './UserPage.module.css'
 
@@ -83,13 +84,11 @@ export default function UserPage() {
   }
 
   return (
-    <div className={`${classes.page} stf-user`}>
-      <div className={classes.inner}>
-        <Text size='sm' fw={600} c='dimmed' tt='uppercase' mb='sm'>{t('User')}</Text>
-        <Paper withBorder shadow='xs' className={classes.card}>
-          {renderProfile()}
-        </Paper>
-      </div>
-    </div>
+    <Page className='stf-user' innerClassName={classes.inner} maxWidth={560}>
+      <Text size='sm' fw={600} c='dimmed' tt='uppercase' mb='sm'>{t('User')}</Text>
+      <Paper withBorder shadow='xs' className={classes.card}>
+        {renderProfile()}
+      </Paper>
+    </Page>
   )
 }

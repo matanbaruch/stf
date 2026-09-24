@@ -5,6 +5,7 @@ import {IconChevronLeft, IconFileUnknown, IconHome} from '@tabler/icons-react'
 import {useQuery} from '@tanstack/react-query'
 import {useTranslation} from '@/core/i18n'
 import {NothingToShow} from '@/ui/NothingToShow'
+import {Page} from '@/ui/Page'
 import {usePageTitle} from '@/ui/page-title'
 import {documentName, fetchDocument, wikiHome} from './wiki'
 import classes from './DocsPage.module.css'
@@ -75,43 +76,41 @@ export default function DocsPage() {
   }
 
   return (
-    <div ref={pageRef} className={`${classes.page} stf-docs`}>
-      <div className={classes.inner}>
-        <Group className={`${classes.toolbar} stf-docs-navigation`} justify='space-between' wrap='nowrap'>
-          <Group gap='xs' wrap='nowrap'>
-            {hasHistory && (
-              <Tooltip label={t('Go Back')}>
-                <ActionIcon
-                  variant='default'
-                  size='lg'
-                  className='docs-back'
-                  aria-label={t('Go Back')}
-                  onClick={() => navigate(-1)}
-                >
-                  <IconChevronLeft size={18} />
-                </ActionIcon>
-              </Tooltip>
-            )}
-            <Tooltip label={t('Home')}>
+    <Page ref={pageRef} className='stf-docs' innerClassName={classes.inner} maxWidth={960}>
+      <Group className={`${classes.toolbar} stf-docs-navigation`} justify='space-between' wrap='nowrap'>
+        <Group gap='xs' wrap='nowrap'>
+          {hasHistory && (
+            <Tooltip label={t('Go Back')}>
               <ActionIcon
                 variant='default'
                 size='lg'
-                className='docs-home'
-                aria-label={t('Home')}
-                onClick={() => navigate(homeRoute)}
+                className='docs-back'
+                aria-label={t('Go Back')}
+                onClick={() => navigate(-1)}
               >
-                <IconHome size={18} />
+                <IconChevronLeft size={18} />
               </ActionIcon>
             </Tooltip>
-          </Group>
-          <Text size='sm' c='dimmed' truncate>
-            {t('Help')} / {docName.replace(/-/g, ' ')}
-          </Text>
+          )}
+          <Tooltip label={t('Home')}>
+            <ActionIcon
+              variant='default'
+              size='lg'
+              className='docs-home'
+              aria-label={t('Home')}
+              onClick={() => navigate(homeRoute)}
+            >
+              <IconHome size={18} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
-        <Paper withBorder shadow='xs' className={classes.paper}>
-          {renderContent()}
-        </Paper>
-      </div>
-    </div>
+        <Text size='sm' c='dimmed' truncate>
+          {t('Help')} / {docName.replace(/-/g, ' ')}
+        </Text>
+      </Group>
+      <Paper withBorder shadow='xs' className={classes.paper}>
+        {renderContent()}
+      </Paper>
+    </Page>
   )
 }

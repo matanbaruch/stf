@@ -18,10 +18,5 @@ export const browserInfo = {
   , small
   , os
   , mobile: small && touch && os !== 'pc'
-  , retina: window.devicePixelRatio > 1 ||
-    Boolean(window.matchMedia?.('(min-resolution: 1.5dppx)').matches)
-  , webgl: Boolean(window.WebGLRenderingContext)
-  , ua: navigator.userAgent
-  , devicemotion: 'DeviceMotionEvent' in window
   , deviceorientation: 'DeviceOrientationEvent' in window
 }

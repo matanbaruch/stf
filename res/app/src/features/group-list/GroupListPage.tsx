@@ -1,8 +1,6 @@
 import {useMemo, useState} from 'react'
 import {
-  Anchor
-  , Badge
-  , Button
+  Button
   , Center
   , Group
   , Loader
@@ -12,15 +10,8 @@ import {
   , Tooltip
   , UnstyledButton
 } from '@mantine/core'
-import {
-  IconChevronDown
-  , IconChevronUp
-  , IconLayoutGrid
-  , IconMail
-  , IconSelector
-} from '@tabler/icons-react'
+import {IconLayoutGrid, IconMail} from '@tabler/icons-react'
 import orderBy from 'lodash/orderBy'
-import {getClassName, getDuration} from '@/core/common'
 import {formatDate, useDateFormat} from '@/core/date-format'
 import {useTranslation} from '@/core/i18n'
 import {useSetting} from '@/core/settings'
@@ -29,72 +20,23 @@ import {errorMessage} from '@/ui/modals'
 import {ColumnChoice} from '@/ui/ColumnChoice'
 import {mailTo} from '@/ui/mail'
 import {NothingToShow} from '@/ui/NothingToShow'
+import {Page} from '@/ui/Page'
 import {usePageTitle} from '@/ui/page-title'
 import {Pager, useItemsPerPage, usePaged} from '@/ui/Pager'
 import {searchFilter} from '@/ui/paging'
+import {SortIcon} from '@/ui/SortIcon'
 import {
-  defaultGroupData
-  , groupColumns
-  , groupStatus
-  , normalizeGroupData
+  normalizeTableData
   , selectColumns
-  , sortGroupData
   , sortKey
-  , statusColors
-  , statusLabels
-  , type GroupData
-  , type GroupRow
-} from './columns'
-import {GroupDevicesButton, GroupUsersButton} from './GroupMembers'
+  , sortState
+  , toggleSort
+  , type TableData
+} from '@/ui/table-model'
+import {defaultGroupData, groupColumns, groupStatus, type GroupRow} from './columns'
 import {GroupQuotaStats, GroupStats} from './GroupStats'
 import {useQuotaUser, useViewGroups} from './use-view-groups'
 import classes from './GroupListPage.module.css'
-
-function GroupCell({index, row}: {index: number, row: GroupRow}) {
-  const {t} = useTranslation()
-  const {group} = row
-
-  switch (index) {
-    case 0:
-      return row.status ? (
-        <Badge variant='light' color={statusColors[row.status]} radius='sm' className='group-status'>
-          {t(statusLabels[row.status])}
-        </Badge>
-      ) : null
-    case 1:
-      return (
-        <Group gap='xs' wrap='nowrap' className='selectable'>
-          <IconLayoutGrid size={16} className={classes.groupIcon} />
-          <Text size='sm' fw={500} className='group-list-name'>{group.name}</Text>
-        </Group>
-      )
-    case 2:
-      return <Text size='xs' ff='monospace' className='selectable'>{group.id}</Text>
-    case 3:
-      return <Anchor size='sm' href={`mailto:${group.owner?.email}`}>{group.owner?.name}</Anchor>
-    case 4:
-      return <GroupDevicesButton group={group} />
-    case 5:
-      return <GroupUsersButton group={group} />
-    case 6:
-      return <>{getClassName(group.class)}</>
-    case 7:
-      return <>{group.repetitions}</>
-    case 8:
-      return <>{typeof group.duration === 'number' ? getDuration(group.duration) : ''}</>
-    case 9:
-      return <Text size='sm' className={classes.nowrap}>{row.startTime}</Text>
-    default:
-      return <Text size='sm' className={classes.nowrap}>{row.stopTime}</Text>
-  }
-}
-
-function SortIcon({active, reverse}: {active: boolean, reverse: boolean}) {
-  if (!active) {
-    return <IconSelector size={14} className={classes.sortIdle} />
-  }
-  return reverse ? <IconChevronDown size={14} /> : <IconChevronUp size={14} />
-}
 
 export default function GroupListPage() {
   const {t} = useTranslation()
@@ -104,7 +46,7 @@ export default function GroupListPage() {
   const [storedGroupData, setGroupData] = useSetting<unknown>('groupData', defaultGroupData)
   const [perPage, setPerPage] = useItemsPerPage('groupViewItemsPerPage')
   const [search, setSearch] = useState('')
-  const groupData = normalizeGroupData(storedGroupData)
+  const groupData = normalizeTableData(storedGroupData, defaultGroupData)
 
   usePageTitle(t('Groups'))
 
@@ -130,7 +72,7 @@ export default function GroupListPage() {
     .map((column, index) => ({column, index}))
     .filter(({column}) => column.selected)
 
-  function update(data: GroupData) {
+  function update(data: TableData) {
     setGroupData(data)
   }
 
@@ -169,10 +111,10 @@ export default function GroupListPage() {
               items={groupData.columns.map((column) => ({
                 id: column.name
                 , label: t(column.name)
-                , selected: column.selected
+                , selected: Boolean(column.selected)
               }))}
               onChange={(items) => update(selectColumns(groupData, items.map((item) => item.selected)))}
-              onReset={() => update(JSON.parse(JSON.stringify(defaultGroupData)))}
+              onReset={() => update(defaultGroupData)}
             />
           </Group>
           <Tooltip label={t('Write an email to the group owner selection')}>
@@ -195,10 +137,10 @@ export default function GroupListPage() {
                   <Table.Th key={column.name} className={classes.th}>
                     <UnstyledButton
                       className={classes.sortButton}
-                      onClick={() => update(sortGroupData(groupData, index))}
+                      onClick={() => update(toggleSort(groupData, index))}
                     >
                       <span>{t(column.name)}</span>
-                      <SortIcon active={groupData.sort.index === index} reverse={groupData.sort.reverse} />
+                      <SortIcon sort={sortState(groupData, index)} />
                     </UnstyledButton>
                   </Table.Th>
                 ))}
@@ -208,9 +150,7 @@ export default function GroupListPage() {
               {paged.items.map((row) => (
                 <Table.Tr key={row.group.id}>
                   {visibleColumns.map(({column, index}) => (
-                    <Table.Td key={column.name}>
-                      <GroupCell index={index} row={row} />
-                    </Table.Td>
+                    <Table.Td key={column.name}>{groupColumns[index].render(row)}</Table.Td>
                   ))}
                 </Table.Tr>
               ))}
@@ -225,14 +165,12 @@ export default function GroupListPage() {
   }
 
   return (
-    <div className={`${classes.page} stf-group-list stf-groups`}>
-      <div className={classes.inner}>
-        <GroupStats groups={groups.data || []} />
-        <GroupQuotaStats user={quotaUser.data || currentUser} />
-        <Paper withBorder className={`${classes.tableCard} group-list`}>
-          {renderGroups()}
-        </Paper>
-      </div>
-    </div>
+    <Page className='stf-group-list stf-groups' innerClassName={classes.inner} maxWidth={1680}>
+      <GroupStats groups={groups.data || []} />
+      <GroupQuotaStats user={quotaUser.data || currentUser} />
+      <Paper withBorder className={`${classes.tableCard} group-list`}>
+        {renderGroups()}
+      </Paper>
+    </Page>
   )
 }

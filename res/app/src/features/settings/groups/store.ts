@@ -13,14 +13,14 @@ import {
   , updateItem
   , type Collection
 } from '@/core/collection'
-import {devicesApi} from '@/core/devices-api'
-import {groupsApi, type Group} from '@/core/groups-api'
+import {devicesApi, deviceSettingsEvents} from '@/core/devices-api'
+import {groupSettingsEvents, groupsApi, type Group} from '@/core/groups-api'
 import {onSocket} from '@/core/socket'
 import {getUser} from '@/core/user'
-import {usersApi} from '@/core/users-api'
+import {userSettingsEvents, usersApi, userViewEvents} from '@/core/users-api'
 import {errorMessage} from '@/ui/modals'
 import {isAdminUser, isOriginGroup} from './rules'
-import {deviceFields, userFields, type ConflictRow, type SettingsDevice, type SettingsUser} from './types'
+import {groupDeviceFields, userFields, type ConflictRow, type SettingsDevice, type SettingsUser} from './types'
 
 interface TransientDevices {
   groupId: string | null
@@ -84,11 +84,14 @@ function showLoadError(error: unknown) {
   notifications.show({color: 'red', message: errorMessage(error)})
 }
 
-function isBookedDevice(state: Pick<GroupsState, 'groups' | 'originDevices'>, serial: string): boolean {
-  if (!hasItem(state.originDevices, serial)) {
-    return false
+function bookedSerials(groups: Collection<Group>): Set<string> {
+  const serials = new Set<string>()
+  for (const group of listOf(groups)) {
+    if (!isOriginGroup(group.class)) {
+      group.devices.forEach((serial) => serials.add(serial))
+    }
   }
-  return listOf(state.groups).some((group) => !isOriginGroup(group.class) && group.devices.includes(serial))
+  return serials
 }
 
 function addStandardizableIfNotBooked(
@@ -97,9 +100,10 @@ function addStandardizableIfNotBooked(
 , timeStamp: number
 ): Collection<SettingsDevice> {
   let standardizable = state.standardizableDevices
+  const booked = bookedSerials(state.groups)
   for (const serial of serials) {
     const device = getItem(state.originDevices, serial)
-    if (device && !isBookedDevice(state, serial)) {
+    if (device && !booked.has(serial)) {
       standardizable = addItem(standardizable, serial, device, timeStamp).collection
     }
   }
@@ -107,7 +111,7 @@ function addStandardizableIfNotBooked(
 }
 
 function fetchTransient(groupId: string, request: number, reportErrors: boolean) {
-  groupsApi.getGroupDevices(groupId, true, deviceFields)
+  groupsApi.getGroupDevices(groupId, true, groupDeviceFields)
     .then((response) => {
       if (request === transientRequest && get().transient.groupId === groupId) {
         set({
@@ -196,14 +200,14 @@ export function loadGroupsSettings(): void {
     })
     .catch(showLoadError)
   if (isAdminUser(appState.user)) {
-    devicesApi.getDevices('origin', deviceFields)
+    devicesApi.getDevices('origin', groupDeviceFields)
       .then((response) => {
         set((state) => ({
           originDevices: addItems(state.originDevices, response.devices as SettingsDevice[], (d) => d.serial, -1)
         }))
       })
       .catch(showLoadError)
-    devicesApi.getDevices('standardizable', deviceFields)
+    devicesApi.getDevices('standardizable', groupDeviceFields)
       .then((response) => {
         set((state) => ({
           standardizableDevices: addItems(
@@ -348,7 +352,8 @@ function onDeviceUpdated(message: DeviceChangeMessage) {
   const state = get()
   if (isAdminUser(state.currentUser)) {
     const originDevices = updateItem(state.originDevices, device.serial, device, message.timeStamp).collection
-    const standardizableDevices = isBookedDevice({groups: state.groups, originDevices}, device.serial) ?
+    const booked = hasItem(originDevices, device.serial) && bookedSerials(state.groups).has(device.serial)
+    const standardizableDevices = booked ?
       state.standardizableDevices :
       updateItem(state.standardizableDevices, device.serial, device, message.timeStamp).collection
     set({originDevices, standardizableDevices})
@@ -367,17 +372,22 @@ function onDeviceUpdated(message: DeviceChangeMessage) {
   }
 }
 
+const [groupCreatedEvent, groupDeletedEvent, groupUpdatedEvent] = groupSettingsEvents
+const [userCreatedEvent, userDeletedEvent, userUpdatedEvent] = userSettingsEvents
+const [userViewUpdatedEvent] = userViewEvents
+const [deviceCreatedEvent, deviceDeletedEvent, deviceUpdatedEvent] = deviceSettingsEvents
+
 const handlers: Record<string, (message: any) => void> = {
-  'user.settings.groups.created': onGroupCreated
-  , 'user.settings.groups.deleted': onGroupDeleted
-  , 'user.settings.groups.updated': onGroupUpdated
-  , 'user.settings.users.created': onUserCreated
-  , 'user.settings.users.deleted': onUserDeleted
-  , 'user.settings.users.updated': onUserUpdated
-  , 'user.view.users.updated': onUserUpdated
-  , 'user.settings.devices.created': onDeviceCreated
-  , 'user.settings.devices.deleted': onDeviceDeleted
-  , 'user.settings.devices.updated': onDeviceUpdated
+  [groupCreatedEvent]: onGroupCreated
+  , [groupDeletedEvent]: onGroupDeleted
+  , [groupUpdatedEvent]: onGroupUpdated
+  , [userCreatedEvent]: onUserCreated
+  , [userDeletedEvent]: onUserDeleted
+  , [userUpdatedEvent]: onUserUpdated
+  , [userViewUpdatedEvent]: onUserUpdated
+  , [deviceCreatedEvent]: onDeviceCreated
+  , [deviceDeletedEvent]: onDeviceDeleted
+  , [deviceUpdatedEvent]: onDeviceUpdated
 }
 
 export function useGroupsSettingsSync(): void {

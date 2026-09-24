@@ -13,6 +13,7 @@ import {
 import {isAdmin} from '@/core/app-state'
 import {gettext, useTranslation} from '@/core/i18n'
 import {getSetting, setSetting} from '@/core/settings'
+import {Page} from '@/ui/Page'
 import {usePageTitle} from '@/ui/page-title'
 import DevicesSettings from './devices/DevicesSettings'
 import GeneralSettings from './general/GeneralSettings'
@@ -69,53 +70,51 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className={`stf-settings ${classes.page}`}>
-      <div className={classes.inner}>
-        <Group gap='md' className={classes.header} wrap='nowrap'>
-          <ThemeIcon size={44} radius='md' variant='light'>
-            <IconSettings size={26} />
-          </ThemeIcon>
-          <div>
-            <Title order={2}>{t('Settings')}</Title>
-            <Text c='dimmed' size='sm'>{t(current.title)}</Text>
-          </div>
-        </Group>
-        <Tabs
-          value={current.id}
-          onChange={select}
-          orientation={wide ? 'vertical' : 'horizontal'}
-          variant={wide ? 'pills' : 'default'}
-          keepMounted={false}
-          className={`heading-for-tabs ${classes.tabs} ${wide ? classes.vertical : classes.horizontal}`}
-          classNames={{
-            list: `nav-tabs ${classes.list}`
-            , tab: classes.tab
-            , tabLabel: classes.tabLabel
-            , panel: classes.panel
-          }}
-        >
-          <Tabs.List>
-            {tabs.map(({id, title, icon: Icon}) => (
-              <Tabs.Tab
-                key={id}
-                value={id}
-                component='a'
-                renderRoot={(props) => <a {...props} href={tabHref(id)} />}
-                onClick={(event) => event.preventDefault()}
-                leftSection={<Icon size={18} />}
-                className={`stf-settings-tab-${id}`}
-              >
-                {t(title)}
-              </Tabs.Tab>
-            ))}
-          </Tabs.List>
-          {tabs.map(({id, component: Panel}) => (
-            <Tabs.Panel key={id} value={id}>
-              <Panel />
-            </Tabs.Panel>
+    <Page className='stf-settings' innerClassName={classes.inner} maxWidth={1440}>
+      <Group gap='md' className={classes.header} wrap='nowrap'>
+        <ThemeIcon size={44} radius='md' variant='light'>
+          <IconSettings size={26} />
+        </ThemeIcon>
+        <div>
+          <Title order={2}>{t('Settings')}</Title>
+          <Text c='dimmed' size='sm'>{t(current.title)}</Text>
+        </div>
+      </Group>
+      <Tabs
+        value={current.id}
+        onChange={select}
+        orientation={wide ? 'vertical' : 'horizontal'}
+        variant={wide ? 'pills' : 'default'}
+        keepMounted={false}
+        className={`heading-for-tabs ${classes.tabs} ${wide ? classes.vertical : classes.horizontal}`}
+        classNames={{
+          list: `nav-tabs ${classes.list}`
+          , tab: classes.tab
+          , tabLabel: classes.tabLabel
+          , panel: classes.panel
+        }}
+      >
+        <Tabs.List>
+          {tabs.map(({id, title, icon: Icon}) => (
+            <Tabs.Tab
+              key={id}
+              value={id}
+              component='a'
+              renderRoot={(props) => <a {...props} href={tabHref(id)} />}
+              onClick={(event) => event.preventDefault()}
+              leftSection={<Icon size={18} />}
+              className={`stf-settings-tab-${id}`}
+            >
+              {t(title)}
+            </Tabs.Tab>
           ))}
-        </Tabs>
-      </div>
-    </div>
+        </Tabs.List>
+        {tabs.map(({id, component: Panel}) => (
+          <Tabs.Panel key={id} value={id}>
+            <Panel />
+          </Tabs.Panel>
+        ))}
+      </Tabs>
+    </Page>
   )
 }

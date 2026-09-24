@@ -7,7 +7,7 @@ import {startSettingsSync} from '@/core/settings'
 import {startUserSync} from '@/core/user'
 import {AppLayout} from '@/ui/AppLayout'
 import {Providers} from '@/ui/Providers'
-import {ControlRedirect} from '@/features/control/ControlPage'
+import {ControlRedirect} from '@/features/control/ControlRedirect'
 
 const DeviceListPage = lazy(() => import('@/features/device-list/DeviceListPage'))
 const GroupListPage = lazy(() => import('@/features/group-list/GroupListPage'))
@@ -16,21 +16,13 @@ const ControlPage = lazy(() => import('@/features/control/ControlPage'))
 const UserPage = lazy(() => import('@/features/user/UserPage'))
 const DocsPage = lazy(() => import('@/features/docs/DocsPage'))
 
-if (window.location.hash.startsWith('#!')) {
-  window.history.replaceState(
-    null
-    , ''
-    , `${window.location.pathname}${window.location.search}#${window.location.hash.slice(2)}`
-  )
-}
-
 startSettingsSync()
 startUserSync()
 
 function Fallback() {
   const location = useLocation()
   const legacy = location.pathname.match(/^\/?!(\/.*)$/)
-  return <Navigate to={legacy ? `${legacy[1]}${location.search}` : '/devices'} replace />
+  return <Navigate to={legacy ? `${legacy[1]}${location.search}${location.hash}` : '/devices'} replace />
 }
 
 function page(node: ReactNode) {

@@ -1,11 +1,10 @@
 import {useMemo, type MouseEvent} from 'react'
 import {useNavigate} from 'react-router'
-import {notifications} from '@mantine/notifications'
 import type {Device} from '@/core/devices/types'
 import {inviteDevice, kickDevice} from '@/core/group'
 import {useTranslation} from '@/core/i18n'
-import {errorMessage} from '@/ui/modals'
 import {useAdminMode} from '@/ui/modes'
+import {notifyFailure} from '@/ui/notify'
 import {openStandalone} from './standalone'
 
 export interface DeviceActions {
@@ -29,8 +28,8 @@ export function useDeviceActions(): DeviceActions {
   const [adminMode] = useAdminMode()
 
   return useMemo(() => {
-    function fail(message: string) {
-      notifications.show({color: 'red', title: t('Error'), message})
+    function fail(error: unknown) {
+      notifyFailure(error, t('Error'))
     }
 
     function kick(device: Device, force = false): Promise<void> {
@@ -42,7 +41,7 @@ export function useDeviceActions(): DeviceActions {
     function invite(device: Device): Promise<void> {
       return inviteDevice(device)
         .then(() => undefined)
-        .catch((error) => fail(errorMessage(error)))
+        .catch(fail)
     }
 
     function startUsing(device: Device): Promise<void> {
@@ -50,7 +49,7 @@ export function useDeviceActions(): DeviceActions {
         .then(() => {
           navigate(`/control/${device.serial}`)
         })
-        .catch((error) => fail(errorMessage(error)))
+        .catch(fail)
     }
 
     function modified(event: MouseEvent, device: Device): Promise<void> | undefined {

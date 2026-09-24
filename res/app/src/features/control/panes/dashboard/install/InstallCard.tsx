@@ -29,9 +29,9 @@ import type {Control} from '@/core/control'
 import {useTranslation} from '@/core/i18n'
 import {
   clearInstallation
-  , installErrorMessage
+  , installFailureText
   , installFile
-  , installStateLabels
+  , installStateText
   , installUrl
   , installationStore
   , type Installation
@@ -100,7 +100,6 @@ function InstallationStatus({control, installation}: {control: Control, installa
   const serial = control.target.serial
 
   if (installation.error) {
-    const message = t(installErrorMessage(installation.error))
     return (
       <Alert
         color='red'
@@ -111,7 +110,7 @@ function InstallationStatus({control, installation}: {control: Control, installa
         onClose={() => clearInstallation(serial)}
         className='selectable'
       >
-        {message === installation.error ? message : `${message} (${installation.error})`}
+        {installFailureText(installation.error)}
       </Alert>
     )
   }
@@ -120,12 +119,10 @@ function InstallationStatus({control, installation}: {control: Control, installa
     return <InstalledApp control={control} installation={installation} />
   }
 
-  const label = installStateLabels[installation.state]
-
   return (
     <Stack gap={6}>
       <Group justify='space-between' gap='xs'>
-        <Text size='sm' fw={600}>{label ? t(label) : installation.state}</Text>
+        <Text size='sm' fw={600}>{installStateText(installation.state)}</Text>
         <Badge variant='light' size='sm'>{installation.progress}%</Badge>
       </Group>
       <Progress value={installation.progress} striped animated={!installation.settled} size='md' radius='xl' />
