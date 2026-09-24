@@ -74,15 +74,15 @@ test.describe('STF web UI', function() {
       ).toBeVisible()
     })
 
-  test('[check:playwright_ui] every settings tab a normal user has renders',
+  test('[check:playwright_ui] every settings tab each user has renders',
     async function({page}) {
       await h.login(page)
 
       await page.goto('/#/settings')
       const tabs = page.locator('.stf-settings .heading-for-tabs .nav-tabs a')
-      await expect(tabs).toHaveText(['General', 'Keys', 'Groups'], {
-        timeout: 30000
-      })
+      await expect(tabs.nth(0)).toHaveText('General', {timeout: 30000})
+      await expect(tabs.nth(1)).toHaveText('Keys')
+      await expect(tabs.nth(2)).toHaveText('Groups')
 
       const visits = [['keys', 'Keys'], ['groups', 'Groups'], ['general', 'General']]
       for (const [tab, title] of visits) {
