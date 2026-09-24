@@ -21,7 +21,7 @@ concurrency:
 
 env:
   # Bump to invalidate the dependency cache without touching package.json.
-  CACHE_EPOCH: v2
+  CACHE_EPOCH: v3
 
 jobs:
   # Reads .github/android-matrix.json so the matrix and the report's coverage
